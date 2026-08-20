@@ -3,8 +3,9 @@ from __future__ import annotations
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
-from vgtree.obsidian import ObsidianWorkspace
+from vgtree.obsidian import MAX_AUDIT_FILE_BYTES, ObsidianWorkspace
 
 
 class ObsidianScaffoldTests(unittest.TestCase):
@@ -98,6 +99,59 @@ class ObsidianAuditTests(unittest.TestCase):
 
             self.assertEqual(result.status, "BLOCKED")
             self.assertEqual(result.code, "OBSIDIAN_LIVE_UNAVAILABLE")
+
+    def test_live_audit_rejects_executable_inside_vault(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory) / "vault"
+            ObsidianWorkspace().scaffold(vault, "core")
+            fake_cli = vault / "obsidian"
+            fake_cli.write_text("not executable", encoding="utf-8")
+
+            result = ObsidianWorkspace(cli_path=fake_cli).audit(
+                vault, "core", live=True
+            )
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.code, "OBSIDIAN_CLI_UNTRUSTED")
+
+    def test_audit_rejects_required_symlink_outside_vault(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            vault = root / "vault"
+            outside = root / "outside.md"
+            workspace = ObsidianWorkspace()
+            workspace.scaffold(vault, "core")
+            outside.write_text("outside private bytes", encoding="utf-8")
+            (vault / "HOME.md").unlink()
+            try:
+                (vault / "HOME.md").symlink_to(outside)
+            except OSError:
+                (vault / "HOME.md").write_text("placeholder", encoding="utf-8")
+                with patch("vgtree.obsidian.Path.is_symlink", return_value=True):
+                    result = workspace.audit(vault, "core")
+            else:
+                result = workspace.audit(vault, "core")
+
+            self.assertEqual(result.status, "REVIEW_REQUIRED")
+            self.assertIn(
+                "PATH_UNSAFE", {item["code"] for item in result.data["findings"]}
+            )
+            self.assertNotIn("outside private bytes", str(result.as_dict()))
+
+    def test_audit_rejects_oversized_required_file_before_parsing(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory) / "vault"
+            workspace = ObsidianWorkspace()
+            workspace.scaffold(vault, "core")
+            (vault / "HOME.md").write_bytes(b"x" * (MAX_AUDIT_FILE_BYTES + 1))
+
+            result = workspace.audit(vault, "core")
+
+            self.assertEqual(result.status, "REVIEW_REQUIRED")
+            self.assertIn(
+                "FILE_TOO_LARGE",
+                {item["code"] for item in result.data["findings"]},
+            )
 
 
 if __name__ == "__main__":

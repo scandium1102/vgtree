@@ -20,6 +20,7 @@ CORE_MARKDOWN = ("HOME.md", "PROJECT_MAP.md", "STATUS.md", "TODO.md")
 GOVERNED_MARKDOWN = (*CORE_MARKDOWN, "PROVENANCE.md", "TRANSACTIONS.md")
 PROJECT_REGISTRY = Path("90_System/VGTREE/PROJECT_REGISTRY.yaml")
 FILE_REGISTRY = Path("90_System/VGTREE/FILE_REGISTRY.yaml")
+MAX_AUDIT_FILE_BYTES = 4 * 1024 * 1024
 FILE_UIDS = {
     "HOME.md": "FILE-000001",
     "PROJECT_MAP.md": "FILE-000002",
@@ -169,15 +170,25 @@ class ObsidianWorkspace:
         if mode == "governed":
             required.append(str(FILE_REGISTRY).replace("\\", "/"))
         findings: list[dict[str, str]] = []
+        vault_root = vault.resolve(strict=True)
+        resolved_paths: dict[str, Path] = {}
         for relative in required:
-            if not (vault / relative).is_file():
+            try:
+                resolved = _resolve_audit_file(vault_root, relative)
+            except _AuditPathError as exc:
+                findings.append(_finding(exc.code, relative, exc.message))
+                continue
+            if resolved is None:
                 findings.append(
                     _finding("SURFACE_MISSING", relative, "Required workspace surface is missing.")
                 )
+            else:
+                resolved_paths[relative] = resolved
 
         project_uid: str | None = None
-        registry_path = vault / PROJECT_REGISTRY
-        if registry_path.is_file():
+        project_registry_key = str(PROJECT_REGISTRY).replace("\\", "/")
+        registry_path = resolved_paths.get(project_registry_key)
+        if registry_path is not None:
             try:
                 registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
                 projects = registry.get("projects", []) if isinstance(registry, dict) else []
@@ -190,25 +201,31 @@ class ObsidianWorkspace:
                             "Project registry needs at least one project UID.",
                         )
                     )
-            except (OSError, UnicodeError, yaml.YAMLError) as exc:
+            except (OSError, UnicodeError, yaml.YAMLError):
                 findings.append(
                     _finding(
                         "YAML_INVALID",
-                        str(PROJECT_REGISTRY).replace("\\", "/"),
-                        str(exc),
+                        project_registry_key,
+                        "Project registry could not be read or parsed.",
                     )
                 )
 
         frontmatter_by_path: dict[str, dict[str, Any]] = {}
         for relative in markdown:
-            path = vault / relative
-            if not path.is_file():
+            path = resolved_paths.get(relative)
+            if path is None:
                 continue
             try:
                 metadata = _frontmatter(path)
                 frontmatter_by_path[relative] = metadata
-            except (OSError, UnicodeError, ValueError, yaml.YAMLError) as exc:
-                findings.append(_finding("FRONTMATTER_INVALID", relative, str(exc)))
+            except (OSError, UnicodeError, ValueError, yaml.YAMLError):
+                findings.append(
+                    _finding(
+                        "FRONTMATTER_INVALID",
+                        relative,
+                        "Frontmatter could not be read or parsed.",
+                    )
+                )
                 continue
             if project_uid and metadata.get("project_uid") != project_uid:
                 findings.append(
@@ -223,8 +240,8 @@ class ObsidianWorkspace:
                     _finding("FILE_UID_MISSING", relative, "Governed mode requires a file UID.")
                 )
 
-        home_path = vault / "HOME.md"
-        if home_path.is_file():
+        home_path = resolved_paths.get("HOME.md")
+        if home_path is not None:
             home = home_path.read_text(encoding="utf-8")
             for link in ("[[PROJECT_MAP", "[[STATUS", "[[TODO"):
                 if link not in home:
@@ -236,9 +253,12 @@ class ObsidianWorkspace:
                         )
                     )
 
-        if mode == "governed" and (vault / FILE_REGISTRY).is_file():
+        file_registry_key = str(FILE_REGISTRY).replace("\\", "/")
+        if mode == "governed" and file_registry_key in resolved_paths:
             findings.extend(
-                _file_registry_findings(vault, frontmatter_by_path, markdown)
+                _file_registry_findings(
+                    resolved_paths, frontmatter_by_path, markdown
+                )
             )
         return findings
 
@@ -250,8 +270,26 @@ class ObsidianWorkspace:
                 "Obsidian CLI is unavailable; no live validation was claimed.",
             )
         try:
+            cli_resolved = self.cli_path.resolve(strict=True)
+            vault_resolved = vault.resolve(strict=True)
+            cwd_resolved = Path.cwd().resolve(strict=True)
+        except OSError:
+            return GuardResult(
+                "BLOCKED",
+                "OBSIDIAN_CLI_UNTRUSTED",
+                "Obsidian CLI path could not be resolved safely.",
+            )
+        if _is_within(cli_resolved, vault_resolved) or _is_within(
+            cli_resolved, cwd_resolved
+        ):
+            return GuardResult(
+                "BLOCKED",
+                "OBSIDIAN_CLI_UNTRUSTED",
+                "Obsidian CLI must not be loaded from the audited vault or current workspace.",
+            )
+        try:
             completed = subprocess.run(
-                [str(self.cli_path), "help"],
+                [str(cli_resolved), "help"],
                 cwd=vault,
                 check=False,
                 capture_output=True,
@@ -343,18 +381,23 @@ def _frontmatter(path: Path) -> dict[str, Any]:
 
 
 def _file_registry_findings(
-    vault: Path,
+    resolved_paths: dict[str, Path],
     metadata: dict[str, dict[str, Any]],
     markdown: tuple[str, ...],
 ) -> list[dict[str, str]]:
     findings: list[dict[str, str]] = []
+    file_registry_key = str(FILE_REGISTRY).replace("\\", "/")
     try:
-        registry = yaml.safe_load((vault / FILE_REGISTRY).read_text(encoding="utf-8"))
+        registry = yaml.safe_load(
+            resolved_paths[file_registry_key].read_text(encoding="utf-8")
+        )
         items = registry.get("files", []) if isinstance(registry, dict) else []
-    except (OSError, UnicodeError, yaml.YAMLError) as exc:
+    except (KeyError, OSError, UnicodeError, yaml.YAMLError):
         return [
             _finding(
-                "YAML_INVALID", str(FILE_REGISTRY).replace("\\", "/"), str(exc)
+                "YAML_INVALID",
+                file_registry_key,
+                "File registry could not be read or parsed.",
             )
         ]
     entries = {
@@ -363,8 +406,8 @@ def _file_registry_findings(
         if isinstance(item, dict) and isinstance(item.get("path"), str)
     }
     for relative in markdown:
-        path = vault / relative
-        if not path.is_file():
+        path = resolved_paths.get(relative)
+        if path is None:
             continue
         entry = entries.get(relative)
         if entry is None:
@@ -388,6 +431,51 @@ def _finding(code: str, path: str, message: str) -> dict[str, str]:
     return {"code": code, "path": path, "message": message}
 
 
+class _AuditPathError(ValueError):
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+
+
+def _resolve_audit_file(vault_root: Path, relative: str) -> Path | None:
+    candidate = vault_root / Path(relative)
+    if candidate.is_symlink():
+        raise _AuditPathError(
+            "PATH_UNSAFE", "Required workspace surface must not be a filesystem link."
+        )
+    try:
+        resolved = candidate.resolve(strict=True)
+    except FileNotFoundError:
+        return None
+    except OSError as exc:
+        raise _AuditPathError(
+            "PATH_UNSAFE", "Required workspace surface could not be resolved safely."
+        ) from exc
+    if resolved != vault_root and vault_root not in resolved.parents:
+        raise _AuditPathError(
+            "PATH_UNSAFE", "Required workspace surface resolves outside the vault."
+        )
+    if not resolved.is_file():
+        return None
+    try:
+        size = resolved.stat().st_size
+    except OSError as exc:
+        raise _AuditPathError(
+            "PATH_UNSAFE", "Required workspace surface could not be inspected safely."
+        ) from exc
+    if size > MAX_AUDIT_FILE_BYTES:
+        raise _AuditPathError(
+            "FILE_TOO_LARGE",
+            f"Required workspace surface exceeds {MAX_AUDIT_FILE_BYTES} bytes.",
+        )
+    return resolved
+
+
+def _is_within(candidate: Path, root: Path) -> bool:
+    return candidate == root or root in candidate.parents
+
+
 def _validate_mode(mode: str) -> GuardResult | None:
     if mode in {"core", "governed"}:
         return None
@@ -397,8 +485,10 @@ def _validate_mode(mode: str) -> GuardResult | None:
 
 
 def _find_obsidian_cli() -> Path | None:
+    windows_default = Path.home() / "AppData/Local/Programs/Obsidian/Obsidian.com"
+    if windows_default.is_file():
+        return windows_default
     located = shutil.which("obsidian") or shutil.which("Obsidian.com")
     if located:
         return Path(located)
-    windows_default = Path.home() / "AppData/Local/Programs/Obsidian/Obsidian.com"
-    return windows_default if windows_default.is_file() else None
+    return None
