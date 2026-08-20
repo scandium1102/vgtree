@@ -29,6 +29,20 @@ class ReleaseWorkflowTests(unittest.TestCase):
         self.assertIn("actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9", text)
         self.assertIn("actions/deploy-pages@cd2ce8fcbc39b97be8ca5fce6e763baed58fa128", text)
 
+    def test_release_runbook_preserves_pypi_and_immutable_tag_gates(self) -> None:
+        text = (ROOT / "docs" / "releasing.md").read_text(encoding="utf-8")
+        for phrase in (
+            "GitHub environment `pypi`",
+            "required reviewer",
+            "Trusted Publisher",
+            "release.yml",
+            "v1.1.0",
+            "never move, delete, or recreate the tag",
+            "yank",
+            "SHA256SUMS",
+        ):
+            self.assertIn(phrase, text)
+
 
 if __name__ == "__main__":
     unittest.main()

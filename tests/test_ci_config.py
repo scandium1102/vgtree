@@ -25,6 +25,9 @@ class ContinuousIntegrationTests(unittest.TestCase):
         self.assertIn("python -m unittest discover -s tests -v", text)
         self.assertIn("gh release create", text)
         self.assertIn("dist/*", text)
+        self.assertIn("scripts/build_release_bundles.py", text)
+        self.assertIn("vgtree-plugin-", text)
+        self.assertIn("vgtree-skills-", text)
 
     def test_all_github_actions_are_pinned_to_full_commit_sha(self) -> None:
         for path in (ROOT / ".github" / "workflows").glob("*.yml"):
@@ -67,6 +70,23 @@ class ContinuousIntegrationTests(unittest.TestCase):
 
         self.assertNotIn("actions/checkout", release_block)
         self.assertIn('GH_REPO: ${{ github.repository }}', release_block)
+
+    def test_pypi_job_uses_trusted_publishing_with_manual_environment_gate(self) -> None:
+        text = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        pypi_block = text.split("\n  pypi:\n", 1)[1]
+
+        self.assertIn("needs: build", pypi_block)
+        self.assertIn("name: pypi", pypi_block)
+        self.assertIn("id-token: write", pypi_block)
+        self.assertIn("pypa/gh-action-pypi-publish@", pypi_block)
+        self.assertIn("packages-dir: dist", pypi_block)
+        self.assertIn("attestations: true", pypi_block)
+        self.assertNotIn("actions/checkout", pypi_block)
+        self.assertNotIn("pip install", pypi_block)
+        self.assertNotIn("PYPI_TOKEN", text)
+        self.assertNotIn("password:", pypi_block)
 
 
 if __name__ == "__main__":
