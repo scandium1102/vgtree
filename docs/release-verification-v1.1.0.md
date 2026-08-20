@@ -1,7 +1,7 @@
 # VGTREE 1.1.0 Release Verification
 
 - Date: 2026-08-21
-- Tested source commit: `aee3a52`
+- Runtime candidate commit: `aee3a52`; verification-only commits follow it
 - Local candidate status: **PASS**
 - Public release status: **PENDING EXPLICIT AUTHORIZATION**
 
@@ -48,10 +48,10 @@ manifests.
 | Artifact | SHA-256 |
 |---|---|
 | `vgtree-1.1.0-py3-none-any.whl` | `88a694cd35b81c288cf2e9a929c765ade311666e7ad8221a56a5af2b9e04eceb` |
-| `vgtree-1.1.0.tar.gz` | `41e6b37676cdb890eae59003fc6c09c3f1db6e77b0626588eb31efe3edbe8200` |
+| `vgtree-1.1.0.tar.gz` | `b8941eb09b9a03216bb3cfbec517a8be4b10a02a1155c3bab6824af595e79baa` |
 | `vgtree-plugin-1.1.0.zip` | `60f9f88c79b1f3738824b4a65b52d619927227d5b8aacf0f5a07214f96ea98e6` |
 | `vgtree-skills-1.1.0.zip` | `0e921b769753fbf15c7379754a8a3b1e073d2f8e88de2dd794ed4fc5e86f4f4e` |
-| `SHA256SUMS` | `ba1c413b8744220cae4d61f797c5653db11d8fbf31acde7e2d4c053f768c87f9` |
+| `SHA256SUMS` | `1d9a92089407ad03574505c7d2897e771ff649d30fb9a99e1eaed7bbc0aca0ad` |
 
 Archive inspection confirmed safe relative paths, no duplicate wheel entries,
 regular-file/directory-only source distribution members, normalized metadata,
