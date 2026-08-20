@@ -15,5 +15,9 @@ Include the affected version, platform, minimal reproduction, impact, and any pr
 - The core engine is local-first and performs no network requests.
 - VGTREE does not store API keys or account credentials.
 - Optional Obsidian live checks invoke a detected local CLI with `shell=False`.
+- Obsidian audit inputs must resolve to bounded regular files inside the selected vault.
+- Release builds install reviewed dependencies from a hash-locked file; the write-enabled publish job never checks out or executes repository source.
 - Skills can influence agent behavior. Review untrusted skill changes before installation.
 - VGTREE validates evidence structure and provenance fields, but domain tools remain responsible for the truth of their outputs.
+
+The pre-release security review and remediation record is published in [docs/security-review-v1.0.0.md](docs/security-review-v1.0.0.md).

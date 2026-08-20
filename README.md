@@ -108,6 +108,8 @@ if result.status == "PASS":
 - [Obsidian](docs/obsidian.md)
 - [Schema 1.1 migration](docs/migration.md)
 - [Plugin and Skills](docs/plugin.md)
+- [v1.0.0 security review](docs/security-review-v1.0.0.md)
+- [v1.0.0 release verification](docs/release-verification-v1.0.0.md)
 - [Traditional Chinese quick start](README.zh-TW.md)
 
 ## Boundaries
