@@ -16,6 +16,7 @@ def evidence(evidence_id: str, evidence_type: str) -> dict:
         "method": "automated test",
         "timestamp": "2026-08-20T00:00:00Z",
         "outcome": "PASS",
+        "digest": "sha256:" + ("0" * 64),
     }
 
 
@@ -147,6 +148,7 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "integration"
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
 
         result = VGTREEEngine().next(state)
 
@@ -157,6 +159,7 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "verification"
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-integration", "integration")]
 
         result = VGTREEEngine().complete(state)
@@ -168,6 +171,7 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "verification"
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-final", "final-verification")]
 
         result = VGTREEEngine().complete(state)
@@ -179,6 +183,7 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "verification"
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [
             evidence("ev-integration", "integration"),
             evidence("ev-final", "final-verification"),
@@ -194,6 +199,7 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "mission_understanding"
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-final", "final-verification")]
 
         result = VGTREEEngine().complete(state)
@@ -214,6 +220,7 @@ class GuardTests(unittest.TestCase):
     def test_guard_passes_after_dependency_is_verified(self) -> None:
         state = initialized_state()
         state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
 
         result = VGTREEEngine().guard(state, "docs", "write guide")
 
@@ -286,6 +293,15 @@ class BranchMutationTests(unittest.TestCase):
 
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.code, "BRANCH_TRANSITION_ILLEGAL")
+
+    def test_directly_injected_verified_status_without_pass_evidence_is_invalid(self) -> None:
+        state = initialized_state()
+        state["branches"][0]["status"] = "VERIFIED"
+
+        report = VGTREEEngine().validate(state)
+
+        self.assertFalse(report.valid)
+        self.assertIn("VERIFIED_EVIDENCE_REQUIRED", {issue.code for issue in report.issues})
 
 
 if __name__ == "__main__":

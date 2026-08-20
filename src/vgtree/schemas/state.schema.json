@@ -52,6 +52,20 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["id", "type", "subject", "method", "timestamp", "outcome"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "outcome": { "const": "PASS" } },
+            "required": ["outcome"]
+          },
+          "then": {
+            "anyOf": [
+              { "required": ["digest"] },
+              { "required": ["reference"] }
+            ]
+          }
+        }
+      ],
       "properties": {
         "id": { "type": "string", "minLength": 1 },
         "type": { "type": "string", "minLength": 1 },
@@ -59,7 +73,10 @@
         "method": { "type": "string", "minLength": 1 },
         "timestamp": { "type": "string", "format": "date-time" },
         "outcome": { "enum": ["PASS", "FAIL", "REVIEW_REQUIRED", "BLOCKED"] },
-        "digest": { "type": "string", "minLength": 1 },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
         "reference": { "type": "string", "minLength": 1 }
       }
     },

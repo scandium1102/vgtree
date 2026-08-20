@@ -117,6 +117,20 @@ def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:
             )
 
         evidence = branch.get("evidence")
+        if branch.get("status") == "VERIFIED" and not (
+            isinstance(evidence, list)
+            and any(
+                isinstance(item, dict) and item.get("outcome") == "PASS"
+                for item in evidence
+            )
+        ):
+            issues.append(
+                ValidationIssue(
+                    "VERIFIED_EVIDENCE_REQUIRED",
+                    f"$.branches[{index}].evidence",
+                    "A verified branch requires passing evidence.",
+                )
+            )
         if branch.get("status") == "BLOCKED":
             if not branch.get("blocked_reason"):
                 issues.append(

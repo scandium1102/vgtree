@@ -137,6 +137,7 @@ class CoreCliTests(unittest.TestCase):
             state = initialized_state()
             state["phase"] = "verification"
             state["branches"][0]["status"] = "VERIFIED"
+            state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
             state["evidence"] = [
                 evidence("ev-integration", "integration"),
                 evidence("ev-final", "final-verification"),

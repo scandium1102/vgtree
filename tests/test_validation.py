@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import unittest
 
-from vgtree.validation import validate_state, validate_task
+from vgtree.validation import validate_evidence, validate_state, validate_task
 
 
 def valid_task() -> dict:
@@ -61,6 +61,23 @@ class TaskValidationTests(unittest.TestCase):
     def test_valid_task_passes(self) -> None:
         report = validate_task(valid_task())
         self.assertTrue(report.valid, report.issues)
+
+    def test_passing_evidence_requires_digest_or_reference(self) -> None:
+        item = {
+            "id": "ev-1",
+            "type": "test",
+            "subject": "artifact",
+            "method": "test command",
+            "timestamp": "2026-08-20T00:00:00Z",
+            "outcome": "PASS",
+        }
+
+        without_provenance = validate_evidence(item)
+        item["reference"] = "ci://run/123"
+        with_reference = validate_evidence(item)
+
+        self.assertFalse(without_provenance.valid)
+        self.assertTrue(with_reference.valid, with_reference.issues)
 
     def test_non_integer_estimated_files_is_controlled_failure(self) -> None:
         task = valid_task()

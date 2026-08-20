@@ -313,6 +313,8 @@ def _evidence(
     }
     if digest:
         item["digest"] = digest
+    elif outcome == "PASS":
+        item["reference"] = f"legacy://{evidence_id}"
     return item
 
 
