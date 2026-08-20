@@ -71,5 +71,20 @@ class VerifyingTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("owner", body.lower())
 
 
+class GoverningKnowledgeArchitectureSkillTests(unittest.TestCase):
+    def test_governance_skill_defines_uid_authority_and_modes(self) -> None:
+        metadata, body = load_skill("governing-knowledge-architecture")
+
+        self.assertEqual(metadata["name"], "governing-knowledge-architecture")
+        self.assertIn("knowledge", metadata["description"].lower())
+        self.assertIn("Core mode", body)
+        self.assertIn("Governed mode", body)
+        self.assertIn("project UID", body)
+        self.assertIn("file UID", body)
+        self.assertIn("Home", body)
+        self.assertIn("transaction", body.lower())
+        self.assertIn("vgtree obsidian audit", body)
+
+
 if __name__ == "__main__":
     unittest.main()

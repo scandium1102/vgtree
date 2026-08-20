@@ -1,0 +1,4 @@
+interface:
+  display_name: "Governing Knowledge Architecture"
+  short_description: "Design UID-first Core or Governed knowledge systems"
+  default_prompt: "Use $governing-knowledge-architecture to design or audit this knowledge system."
