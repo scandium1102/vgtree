@@ -58,5 +58,18 @@ class ExecutingTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("BLOCKED", body)
 
 
+class VerifyingTreeWorkSkillTests(unittest.TestCase):
+    def test_verification_skill_requires_fresh_integration_and_readback(self) -> None:
+        metadata, body = load_skill("verifying-tree-work")
+
+        self.assertEqual(metadata["name"], "verifying-tree-work")
+        self.assertIn("verify", metadata["description"].lower())
+        self.assertIn("integration", body)
+        self.assertIn("final-verification", body)
+        self.assertIn("vgtree complete", body)
+        self.assertIn("readback", body.lower())
+        self.assertIn("owner", body.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

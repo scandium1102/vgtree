@@ -1,0 +1,4 @@
+interface:
+  display_name: "Verifying Tree Work"
+  short_description: "Prove integration and completion with fresh evidence"
+  default_prompt: "Use $verifying-tree-work to verify whether this VGTREE outcome is truly complete."
