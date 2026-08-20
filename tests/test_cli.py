@@ -139,5 +139,68 @@ class CoreCliTests(unittest.TestCase):
                 self.assertNotIn("Traceback", completed.stderr + completed.stdout)
 
 
+class ObsidianCliTests(unittest.TestCase):
+    def test_scaffold_and_audit_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory) / "vault"
+
+            scaffold = run_cli(
+                "obsidian", "scaffold", "--destination", str(vault), "--mode", "core"
+            )
+            audit = run_cli(
+                "obsidian", "audit", "--vault", str(vault), "--mode", "core"
+            )
+
+            self.assertEqual(scaffold.returncode, 0, scaffold.stderr)
+            self.assertEqual(audit.returncode, 0, audit.stderr)
+            self.assertEqual(json.loads(audit.stdout)["code"], "OBSIDIAN_AUDIT_PASS")
+
+    def test_plan_writes_only_to_new_path_outside_vault(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory) / "vault"
+            vault.mkdir()
+            output = Path(directory) / "plan.json"
+            before = list(vault.rglob("*"))
+
+            completed = run_cli(
+                "obsidian",
+                "plan",
+                "--vault",
+                str(vault),
+                "--mode",
+                "governed",
+                "--output",
+                str(output),
+            )
+
+            self.assertEqual(completed.returncode, 0, completed.stderr)
+            self.assertTrue(output.is_file())
+            self.assertEqual(list(vault.rglob("*")), before)
+            self.assertEqual(json.loads(output.read_text(encoding="utf-8"))["status"], "PASS")
+
+    def test_plan_rejects_output_inside_vault(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            vault = Path(directory) / "vault"
+            vault.mkdir()
+            output = vault / "plan.json"
+
+            completed = run_cli(
+                "obsidian",
+                "plan",
+                "--vault",
+                str(vault),
+                "--mode",
+                "core",
+                "--output",
+                str(output),
+            )
+
+            self.assertEqual(completed.returncode, 3)
+            self.assertFalse(output.exists())
+            self.assertEqual(
+                json.loads(completed.stdout)["code"], "OBSIDIAN_PLAN_OUTPUT_UNSAFE"
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

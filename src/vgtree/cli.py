@@ -11,6 +11,7 @@ from typing import Any, Callable
 from vgtree.engine import VGTREEEngine
 from vgtree.migration import migrate_state_file
 from vgtree.models import GuardResult
+from vgtree.obsidian import ObsidianWorkspace
 from vgtree.store import StateStore
 
 
@@ -62,6 +63,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     migrate.add_argument("--input", required=True, type=Path)
     migrate.add_argument("--output", required=True, type=Path)
+
+    obsidian = subparsers.add_parser("obsidian", help="Obsidian workspace tools.")
+    obsidian_commands = obsidian.add_subparsers(
+        dest="obsidian_command", required=True
+    )
+    audit = obsidian_commands.add_parser("audit", help="Audit an existing vault.")
+    audit.add_argument("--vault", required=True, type=Path)
+    audit.add_argument("--mode", required=True, choices=("core", "governed"))
+    audit.add_argument("--live", action="store_true")
+    plan = obsidian_commands.add_parser("plan", help="Generate a read-only change plan.")
+    plan.add_argument("--vault", required=True, type=Path)
+    plan.add_argument("--mode", required=True, choices=("core", "governed"))
+    plan.add_argument("--output", required=True, type=Path)
+    scaffold = obsidian_commands.add_parser(
+        "scaffold", help="Create a new starter workspace."
+    )
+    scaffold.add_argument("--destination", required=True, type=Path)
+    scaffold.add_argument("--mode", required=True, choices=("core", "governed"))
     return parser
 
 
@@ -90,6 +109,7 @@ def _dispatch(arguments: argparse.Namespace) -> GuardResult:
         "validate": _validate,
         "complete": _complete,
         "migrate-state": _migrate,
+        "obsidian": _obsidian,
     }
     return commands[arguments.command](arguments)
 
@@ -165,6 +185,59 @@ def _complete(arguments: argparse.Namespace) -> GuardResult:
 
 def _migrate(arguments: argparse.Namespace) -> GuardResult:
     return migrate_state_file(arguments.input, arguments.output)
+
+
+def _obsidian(arguments: argparse.Namespace) -> GuardResult:
+    workspace = ObsidianWorkspace()
+    if arguments.obsidian_command == "audit":
+        return workspace.audit(arguments.vault, arguments.mode, live=arguments.live)
+    if arguments.obsidian_command == "scaffold":
+        return workspace.scaffold(arguments.destination, arguments.mode)
+    if arguments.obsidian_command == "plan":
+        return _obsidian_plan(workspace, arguments.vault, arguments.mode, arguments.output)
+    return GuardResult("FAIL", "CLI_USAGE_ERROR", "Unknown Obsidian command.")
+
+
+def _obsidian_plan(
+    workspace: ObsidianWorkspace, vault: Path, mode: str, output: Path
+) -> GuardResult:
+    try:
+        vault_resolved = vault.resolve()
+        output_resolved = output.resolve()
+    except OSError as exc:
+        return GuardResult("FAIL", "OBSIDIAN_PLAN_PATH_INVALID", str(exc))
+    if output_resolved == vault_resolved or vault_resolved in output_resolved.parents:
+        return GuardResult(
+            "BLOCKED",
+            "OBSIDIAN_PLAN_OUTPUT_UNSAFE",
+            "A read-only plan output must be outside the audited vault.",
+        )
+    if output.exists():
+        return GuardResult(
+            "BLOCKED",
+            "OBSIDIAN_PLAN_OUTPUT_EXISTS",
+            "Plan generation never overwrites an existing output file.",
+        )
+    result = workspace.plan(vault, mode)
+    if result.status != "PASS":
+        return result
+    try:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        with output.open("x", encoding="utf-8", newline="\n") as handle:
+            json.dump(result.as_dict(), handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+    except FileExistsError:
+        return GuardResult(
+            "BLOCKED", "OBSIDIAN_PLAN_OUTPUT_EXISTS", "Plan output already exists."
+        )
+    except (OSError, TypeError, ValueError) as exc:
+        return GuardResult("FAIL", "OBSIDIAN_PLAN_WRITE_FAILED", str(exc))
+    return GuardResult(
+        "PASS",
+        "OBSIDIAN_PLAN_SAVED",
+        "Read-only workspace plan was written outside the vault.",
+        {**result.data, "output": str(output)},
+    )
 
 
 def _mutate_state(
