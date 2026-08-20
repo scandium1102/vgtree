@@ -10,6 +10,7 @@ from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from vgtree.coverage import compute_coverage
 from vgtree.dag import has_cycle
 from vgtree.models import ValidationIssue, ValidationReport
 from vgtree.semantics import compute_task_class
@@ -71,7 +72,13 @@ BRANCH_SPEC_FIELDS = (
     "definition_of_done",
     "evidence_requirements",
     "stop_condition",
+    "coverage_required",
+    "minimum_viable_state",
+    "baseline_evidence_requirements",
+    "shared_interfaces",
+    "deferred_details",
 )
+COVERAGE_BRANCH_FIELDS = BRANCH_SPEC_FIELDS[-5:]
 
 
 def _json_path(parts: Iterable[Any]) -> str:
@@ -133,6 +140,7 @@ def validate_state(state: Any) -> ValidationReport:
                 )
             )
         issues.extend(_branch_spec_issues(task, branches))
+    issues.extend(_coverage_state_issues(state))
     issues.extend(_phase_gate_issues(state, branches))
     return _report(_deduplicate(issues))
 
@@ -200,6 +208,117 @@ def _branch_spec_issues(
                         f"Branch {branch_id} field {field} must match the embedded task.",
                     )
                 )
+    return issues
+
+
+def _coverage_state_issues(state: dict[str, Any]) -> list[ValidationIssue]:
+    version = state.get("schema_version")
+    task = state.get("task")
+    task_map = task.get("capability_map") if isinstance(task, dict) else None
+    coverage = state.get("coverage")
+    branches = state.get("branches")
+    branch_items = branches if isinstance(branches, list) else []
+    extended = any(
+        isinstance(branch, dict)
+        and any(field in branch for field in COVERAGE_BRANCH_FIELDS)
+        for branch in branch_items
+    )
+
+    if version == "2.0":
+        if task_map is not None or coverage is not None or extended:
+            return [
+                ValidationIssue(
+                    "STATE_VERSION_FEATURE_MISMATCH",
+                    "$.schema_version",
+                    "Schema 2.0 cannot contain Capability Map coverage fields.",
+                )
+            ]
+        return []
+    if version != "2.1":
+        return []
+
+    issues: list[ValidationIssue] = []
+    if not isinstance(task_map, dict) or not isinstance(coverage, dict):
+        issues.append(
+            ValidationIssue(
+                "COVERAGE_STATE_REQUIRED",
+                "$.coverage",
+                "Schema 2.1 requires compiled map metadata and coverage state.",
+            )
+        )
+        return issues
+    if coverage.get("policy") != task_map.get("wide_pass_policy"):
+        issues.append(
+            ValidationIssue(
+                "COVERAGE_POLICY_MISMATCH",
+                "$.coverage.policy",
+                "Coverage policy must match the embedded task.",
+            )
+        )
+    if coverage.get("map_digest") != task_map.get("source_digest"):
+        issues.append(
+            ValidationIssue(
+                "COVERAGE_MAP_DIGEST_MISMATCH",
+                "$.coverage.map_digest",
+                "Coverage digest must match the embedded task.",
+            )
+        )
+
+    stage = coverage.get("execution_stage")
+    advanced_at = coverage.get("advanced_at")
+    history = coverage.get("history")
+    history_items = history if isinstance(history, list) else []
+    if stage == "WIDE" and (advanced_at is not None or history_items):
+        issues.append(
+            ValidationIssue(
+                "COVERAGE_STAGE_INVALID",
+                "$.coverage",
+                "WIDE coverage cannot contain a deep-transition record.",
+            )
+        )
+    if stage == "DEEP":
+        if (
+            not isinstance(advanced_at, str)
+            or len(history_items) != 1
+            or not isinstance(history_items[0], dict)
+            or history_items[0].get("timestamp") != advanced_at
+        ):
+            issues.append(
+                ValidationIssue(
+                    "COVERAGE_STAGE_INVALID",
+                    "$.coverage",
+                    "DEEP coverage requires exactly one matching transition record.",
+                )
+            )
+        else:
+            calculated = compute_coverage(state)
+            ready = calculated["wide_pass_ready"]
+            override = history_items[0].get("override")
+            if coverage.get("policy") == "REQUIRED" and not ready:
+                issues.append(
+                    ValidationIssue(
+                        "COVERAGE_STAGE_INVALID",
+                        "$.coverage.execution_stage",
+                        "REQUIRED coverage cannot remain DEEP after baseline evidence is lost.",
+                    )
+                )
+            if coverage.get("policy") == "ADVISORY":
+                if not ready and override is not True:
+                    issues.append(
+                        ValidationIssue(
+                            "COVERAGE_STAGE_INVALID",
+                            "$.coverage.history[0].override",
+                            "Incomplete advisory coverage requires an explicit override.",
+                        )
+                    )
+                if ready and override is not False:
+                    issues.append(
+                        ValidationIssue(
+                            "COVERAGE_STAGE_INVALID",
+                            "$.coverage.history[0].override",
+                            "A completed wide pass is not an override.",
+                        )
+                    )
     return issues
 
 

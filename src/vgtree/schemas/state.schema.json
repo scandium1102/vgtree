@@ -17,7 +17,7 @@
     "history"
   ],
   "properties": {
-    "schema_version": { "const": "2.0" },
+    "schema_version": { "enum": ["2.0", "2.1"] },
     "engine_version": { "type": "string", "minLength": 1 },
     "workflow_ref": { "const": "WF-VEGA-TREE@1.0" },
     "task": { "type": "object" },
@@ -49,6 +49,28 @@
       "minItems": 1,
       "maxItems": 10000,
       "items": { "$ref": "#/$defs/history" }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "execution_stage", "map_digest", "advanced_at", "history"],
+      "properties": {
+        "policy": { "enum": ["ADVISORY", "REQUIRED"] },
+        "execution_stage": { "enum": ["WIDE", "DEEP"] },
+        "map_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "advanced_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "history": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/coverage_history" }
+        }
+      }
     }
   },
   "$defs": {
@@ -147,6 +169,11 @@
           "uniqueItems": true
         },
         "stop_condition": { "type": "string", "minLength": 1 },
+        "coverage_required": { "type": "boolean" },
+        "minimum_viable_state": { "$ref": "#/$defs/nonempty_text_list" },
+        "baseline_evidence_requirements": { "$ref": "#/$defs/nonempty_text_list" },
+        "shared_interfaces": { "$ref": "#/$defs/text_list" },
+        "deferred_details": { "$ref": "#/$defs/text_list" },
         "evidence": {
           "type": "array",
           "maxItems": 10000,
@@ -165,6 +192,30 @@
         "to": { "type": "string", "minLength": 1 },
         "timestamp": { "type": "string", "format": "date-time" },
         "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "text_list": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 10000 }
+    },
+    "nonempty_text_list": {
+      "allOf": [
+        { "$ref": "#/$defs/text_list" },
+        { "minItems": 1 }
+      ]
+    },
+    "coverage_history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "timestamp", "reason", "override"],
+      "properties": {
+        "from": { "const": "WIDE" },
+        "to": { "const": "DEEP" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "override": { "type": "boolean" }
       }
     }
   }

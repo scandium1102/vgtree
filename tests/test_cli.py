@@ -8,9 +8,11 @@ import unittest
 from pathlib import Path
 
 from test_capability import valid_map
+from test_coverage import covered_state, coverage_task
 from test_engine import at_phase, evidence, initialized_state
 from test_persistence import legacy_state
 from test_validation import valid_task
+from vgtree.engine import VGTREEEngine
 from vgtree.validation import validate_task
 
 
@@ -24,6 +26,54 @@ def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 
 class CoreCliTests(unittest.TestCase):
+    def test_coverage_and_advance_depth_persist_state(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state = covered_state()
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            report = run_cli("coverage", "--state", str(state_path))
+            advanced = run_cli("advance-depth", "--state", str(state_path))
+            saved = json.loads(state_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(report.returncode, 0, report.stderr)
+            self.assertEqual(advanced.returncode, 0, advanced.stderr)
+            self.assertEqual(saved["coverage"]["execution_stage"], "DEEP")
+
+    def test_advance_depth_lock_collision_preserves_state_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state_path.write_text(json.dumps(covered_state()), encoding="utf-8")
+            before = state_path.read_bytes()
+            state_path.with_name("state.json.lock").write_text(
+                "other writer", encoding="utf-8"
+            )
+
+            result = run_cli("advance-depth", "--state", str(state_path))
+
+            self.assertEqual(result.returncode, 3)
+            self.assertEqual(json.loads(result.stdout)["code"], "STATE_LOCKED")
+            self.assertEqual(state_path.read_bytes(), before)
+
+    def test_guard_depth_is_forwarded(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state = VGTREEEngine().initialize(coverage_task()).data["state"]
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            result = run_cli(
+                "guard",
+                "--state",
+                str(state_path),
+                "--branch",
+                "authorize",
+                "--activity",
+                "deep optimization",
+                "--depth",
+                "deep",
+            )
+            self.assertEqual(result.returncode, 3)
+            self.assertEqual(json.loads(result.stdout)["code"], "DEEP_STAGE_NOT_ACTIVE")
+
     def test_map_validate_and_compile_never_overwrite(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

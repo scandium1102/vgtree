@@ -5,6 +5,7 @@ import unittest
 from pathlib import Path
 
 from vgtree.capability import validate_capability_map
+from vgtree.validation import validate_evidence, validate_state
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -31,6 +32,8 @@ class PublicDocumentationTests(unittest.TestCase):
             "examples/evidence.json",
             "examples/workflow-registry.json",
             "examples/capability-map.json",
+            "examples/baseline-evidence.json",
+            "examples/state-2.1.json",
         )
         for relative in required:
             with self.subTest(relative=relative):
@@ -65,6 +68,17 @@ class PublicDocumentationTests(unittest.TestCase):
             (ROOT / "examples" / "capability-map.json").read_text(encoding="utf-8")
         )
         self.assertTrue(validate_capability_map(example).valid)
+
+    def test_coverage_examples_are_valid(self) -> None:
+        baseline = json.loads(
+            (ROOT / "examples" / "baseline-evidence.json").read_text(encoding="utf-8")
+        )
+        state = json.loads(
+            (ROOT / "examples" / "state-2.1.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(validate_evidence(baseline).valid)
+        self.assertTrue(validate_state(state).valid)
+        self.assertEqual(state["coverage"]["execution_stage"], "WIDE")
 
     def test_public_text_has_no_private_workspace_markers(self) -> None:
         forbidden = (

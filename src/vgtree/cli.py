@@ -59,6 +59,16 @@ def build_parser() -> argparse.ArgumentParser:
     guard.add_argument("--state", required=True, type=Path)
     guard.add_argument("--branch", required=True)
     guard.add_argument("--activity", required=True)
+    guard.add_argument("--depth", choices=("wide", "deep"))
+
+    coverage = subparsers.add_parser("coverage", help="Evaluate breadth coverage.")
+    coverage.add_argument("--state", required=True, type=Path)
+
+    advance_depth = subparsers.add_parser(
+        "advance-depth", help="Advance one opted-in state from wide to deep work."
+    )
+    advance_depth.add_argument("--state", required=True, type=Path)
+    advance_depth.add_argument("--reason")
 
     validate = subparsers.add_parser("validate", help="Validate a workflow state.")
     validate.add_argument("--state", required=True, type=Path)
@@ -146,6 +156,8 @@ def _dispatch(arguments: argparse.Namespace) -> GuardResult:
         "init": _initialize,
         "next": _next,
         "guard": _guard,
+        "coverage": _coverage,
+        "advance-depth": _advance_depth,
         "validate": _validate,
         "complete": _complete,
         "record-evidence": _record_evidence,
@@ -219,7 +231,26 @@ def _guard(arguments: argparse.Namespace) -> GuardResult:
     if loaded.status != "PASS":
         return loaded
     return VGTREEEngine().guard(
-        loaded.data["state"], arguments.branch, arguments.activity
+        loaded.data["state"],
+        arguments.branch,
+        arguments.activity,
+        depth=arguments.depth,
+    )
+
+
+def _coverage(arguments: argparse.Namespace) -> GuardResult:
+    loaded = StateStore().load(arguments.state)
+    if loaded.status != "PASS":
+        return loaded
+    return VGTREEEngine().evaluate_coverage(loaded.data["state"])
+
+
+def _advance_depth(arguments: argparse.Namespace) -> GuardResult:
+    return _mutate_state(
+        arguments.state,
+        lambda state: VGTREEEngine().advance_execution_depth(
+            state, reason=arguments.reason
+        ),
     )
 
 
