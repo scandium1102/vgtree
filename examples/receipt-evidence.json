@@ -1,5 +1,5 @@
 {
-  "digest": "sha256:82e9492b7bf60e2adf8eb553b30e0e174dfb348b0fa896abf554279e813351d1",
+  "digest": "sha256:013ce19bf5988d859446406ee3c123b4992eed51ae5ddd0fcfa5a7a0a309516c",
   "id": "receipt-build-001",
   "method": "full test suite",
   "outcome": "PASS",
