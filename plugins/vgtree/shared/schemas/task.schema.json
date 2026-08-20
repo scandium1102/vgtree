@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vgtree.dev/schemas/task.schema.json",
+  "title": "VGTREE Task Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "title", "signals"],
+  "properties": {
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "description": { "type": "string", "maxLength": 10000 },
+    "explicit_class": { "enum": ["T0", "T1", "T2", "T3", "T4"] },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimated_files",
+        "migration",
+        "project_scale",
+        "external_effect",
+        "destructive",
+        "cross_system",
+        "irreversible"
+      ],
+      "properties": {
+        "estimated_files": { "type": "integer", "minimum": 0 },
+        "migration": { "type": "boolean" },
+        "project_scale": { "type": "boolean" },
+        "external_effect": { "type": "boolean" },
+        "destructive": { "type": "boolean" },
+        "cross_system": { "type": "boolean" },
+        "irreversible": { "type": "boolean" }
+      }
+    },
+    "specialized_match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_ref",
+        "registered",
+        "trigger_match",
+        "context_match",
+        "capability_match",
+        "outcome_match",
+        "safety_match"
+      ],
+      "properties": {
+        "workflow_ref": { "type": "string", "minLength": 1 },
+        "registered": { "type": "boolean" },
+        "trigger_match": { "type": "boolean" },
+        "context_match": { "type": "boolean" },
+        "capability_match": { "type": "boolean" },
+        "outcome_match": { "type": "boolean" },
+        "safety_match": { "type": "boolean" }
+      }
+    },
+    "capability_map": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "map_version",
+        "source_digest",
+        "wide_pass_policy",
+        "cross_cutting_constraints",
+        "final_acceptance_matrix"
+      ],
+      "properties": {
+        "map_version": { "const": "1.0" },
+        "source_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "wide_pass_policy": { "enum": ["ADVISORY", "REQUIRED"] },
+        "cross_cutting_constraints": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/constraint" }
+        },
+        "final_acceptance_matrix": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 1000,
+          "items": { "$ref": "#/$defs/acceptance_row" }
+        }
+      }
+    },
+    "branches": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "kind", "priority", "depends_on"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+          "kind": { "enum": ["primary", "secondary"] },
+          "priority": { "enum": ["P0", "P1", "P2", "DEFERRED"] },
+          "depends_on": {
+            "type": "array",
+            "maxItems": 1000,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
+            "uniqueItems": true
+          },
+          "definition_of_done": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "evidence_requirements": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "minItems": 1,
+            "maxItems": 100,
+            "uniqueItems": true
+          },
+          "stop_condition": { "type": "string", "minLength": 1, "maxLength": 2000 },
+          "coverage_required": { "type": "boolean" },
+          "minimum_viable_state": { "$ref": "#/$defs/nonempty_text_list" },
+          "baseline_evidence_requirements": { "$ref": "#/$defs/nonempty_text_list" },
+          "shared_interfaces": { "$ref": "#/$defs/text_list" },
+          "deferred_details": { "$ref": "#/$defs/text_list" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "id_list": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1000,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/id" }
+    },
+    "text_list": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 10000 }
+    },
+    "nonempty_text_list": {
+      "allOf": [
+        { "$ref": "#/$defs/text_list" },
+        { "minItems": 1 }
+      ]
+    },
+    "constraint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "description", "owner_branch_id", "module_ids", "gate"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "description": { "type": "string", "minLength": 1, "maxLength": 10000 },
+        "owner_branch_id": { "$ref": "#/$defs/id" },
+        "module_ids": { "$ref": "#/$defs/id_list" },
+        "gate": { "enum": ["PRE_EXECUTION", "COVERAGE", "COMPLETION"] }
+      }
+    },
+    "acceptance_row": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "criterion", "module_ids", "evidence_requirements", "gate"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "criterion": { "type": "string", "minLength": 1, "maxLength": 10000 },
+        "module_ids": { "$ref": "#/$defs/id_list" },
+        "evidence_requirements": { "$ref": "#/$defs/nonempty_text_list" },
+        "gate": { "enum": ["integration", "final-verification"] }
+      }
+    }
+  }
+}

@@ -7,6 +7,14 @@ description: Use when designing or auditing a reusable knowledge architecture wi
 
 Build one authority model with two governance strengths. Core and Governed modes must not become competing versions of current truth.
 
+## Runtime mode
+
+Run `vgtree --version` without installing software. Use `ENGINE` only for a compatible 1.1.x CLI. Otherwise use `SKILL_ONLY` and the packaged resources under `../../shared/`. Do not install VGTREE automatically.
+
+In `SKILL_ONLY`, report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and an overall status no higher than `REVIEW_REQUIRED`. The fallback may plan, record, and review work, but it cannot claim that deterministic VGTREE gates returned `PASS`. Read `../../shared/references/runtime-modes.md` when choosing or reporting the mode.
+
+In `SKILL_ONLY`, the architecture guidance remains usable for planning and read-only review. Do not install VGTREE or turn guidance into an unapproved mutation. Use the packaged work record and preserve unknown ownership, UID, lineage, or path as `REVIEW_REQUIRED`.
+
 ## Choose the mode
 
 ### Core mode

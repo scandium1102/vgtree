@@ -7,11 +7,17 @@ description: Use when planning a complex task as a breadth-first branch DAG with
 
 Create an executable control-plane artifact, not only a prose roadmap.
 
+## Runtime mode
+
+Run `vgtree --version` without installing software. Use `ENGINE` only for a compatible 1.1.x CLI. Otherwise use `SKILL_ONLY` and the packaged resources under `../../shared/`. Do not install VGTREE automatically.
+
+In `SKILL_ONLY`, report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and an overall status no higher than `REVIEW_REQUIRED`. The fallback may plan, record, and review work, but it cannot claim that deterministic VGTREE gates returned `PASS`. Read `../../shared/references/runtime-modes.md` when choosing or reporting the mode.
+
 ## Establish the mission
 
 Record the primary outcome, explicit non-goals, authorization boundaries, affected systems, rollback context, and the evidence needed to prove the final outcome. Inspect the real workspace before estimating scope.
 
-Create task signals and run `vgtree classify --task <task.json>`. Do not select a lower class to avoid Tree execution.
+For tree-scale work, write `capability-map.json` before task state. Direct T0/T1 work stays lightweight. Do not select a lower class to avoid Tree execution.
 
 ## Map breadth before depth
 
@@ -30,9 +36,14 @@ Every branch needs:
   "title": "Outcome-oriented label",
   "kind": "primary",
   "priority": "P0",
+  "coverage_required": true,
   "depends_on": [],
+  "minimum_viable_state": ["Observable wide-pass baseline"],
+  "baseline_evidence_requirements": ["Fresh baseline inspection"],
   "definition_of_done": ["Observable outcome"],
-  "evidence_requirements": ["Fresh command or readback evidence"],
+  "acceptance_evidence": ["Fresh command or readback evidence"],
+  "shared_interfaces": ["named-interface"],
+  "deferred_details": [],
   "stop_condition": "Stop when the decision is ready or the branch is blocked"
 }
 ```
@@ -49,7 +60,19 @@ Use `depends_on` only for real prerequisites. Reject missing nodes, self-depende
 
 ## Validate the plan
 
-Initialize it with `vgtree init --task <task.json> --state <state.json>`, then run `vgtree validate --state <state.json>`. Treat validation failure as a planning defect.
+Preserve repository instructions, authorization, rollback, and protected paths. Encode every high-risk gate as a `PRE_EXECUTION` owner branch plus real dependency edges. Then, in `ENGINE`:
+
+```text
+vgtree map validate --map capability-map.json
+vgtree map compile --map capability-map.json --output task.json
+vgtree classify --task task.json
+vgtree init --task task.json --state state.json
+vgtree validate --state state.json
+```
+
+Inspect compiler warnings for unconsumed interfaces. Initialize only after validation and owner review when required.
+
+In `SKILL_ONLY`, copy `../../shared/templates/capability-map.json`, check it against `../../shared/schemas/capability-map.schema.json`, and record the review in `skill-only-work-record.json`. Do not install a CLI, compile a task, or claim validation `PASS`; report `engine_validation=NOT_RUN` and overall `REVIEW_REQUIRED`.
 
 Before execution, be able to answer:
 

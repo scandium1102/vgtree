@@ -1,0 +1,101 @@
+{
+  "cross_cutting_constraints": [
+    {
+      "description": "External release requires approval",
+      "gate": "PRE_EXECUTION",
+      "id": "release-auth",
+      "module_ids": [
+        "deploy"
+      ],
+      "owner_branch_id": "authorize"
+    }
+  ],
+  "final_acceptance_matrix": [
+    {
+      "criterion": "Approved artifact is publicly readable",
+      "evidence_requirements": [
+        "Authoritative readback"
+      ],
+      "gate": "final-verification",
+      "id": "release-readback",
+      "module_ids": [
+        "deploy"
+      ]
+    }
+  ],
+  "goal": "Verified release and authoritative readback",
+  "map_version": "1.0",
+  "modules": [
+    {
+      "acceptance_evidence": [
+        "Authorization evidence"
+      ],
+      "baseline_evidence_requirements": [
+        "Fresh authorization record"
+      ],
+      "coverage_required": true,
+      "definition_of_done": [
+        "Release is explicitly authorized"
+      ],
+      "deferred_details": [],
+      "depends_on": [],
+      "id": "authorize",
+      "kind": "primary",
+      "minimum_viable_state": [
+        "Release owner and target are known"
+      ],
+      "priority": "P0",
+      "purpose": "Own the external-effect gate",
+      "shared_interfaces": [
+        "release-target"
+      ],
+      "stop_condition": "Stop on approval or named blocker",
+      "title": "Authorize release"
+    },
+    {
+      "acceptance_evidence": [
+        "Deployment and readback evidence"
+      ],
+      "baseline_evidence_requirements": [
+        "Fresh target inspection"
+      ],
+      "coverage_required": true,
+      "definition_of_done": [
+        "Approved artifact is available"
+      ],
+      "deferred_details": [
+        "Performance tuning"
+      ],
+      "depends_on": [
+        "authorize"
+      ],
+      "id": "deploy",
+      "kind": "primary",
+      "minimum_viable_state": [
+        "Target and rollback route are known"
+      ],
+      "priority": "P0",
+      "purpose": "Publish the integrated artifact",
+      "shared_interfaces": [
+        "release-target"
+      ],
+      "stop_condition": "Stop after readback or named blocker",
+      "title": "Deploy release"
+    }
+  ],
+  "signals": {
+    "cross_system": true,
+    "destructive": false,
+    "estimated_files": 20,
+    "external_effect": true,
+    "irreversible": false,
+    "migration": false,
+    "project_scale": true
+  },
+  "task_id": "release-example",
+  "title": "Release an integrated product",
+  "wide_pass_policy": "REQUIRED"
+}
+
+
+

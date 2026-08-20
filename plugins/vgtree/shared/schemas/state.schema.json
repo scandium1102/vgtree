@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vgtree.dev/schemas/state.schema.json",
+  "title": "VGTREE Workflow State",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "engine_version",
+    "workflow_ref",
+    "task",
+    "task_class",
+    "route",
+    "phase",
+    "branches",
+    "evidence",
+    "history"
+  ],
+  "properties": {
+    "schema_version": { "enum": ["2.0", "2.1"] },
+    "engine_version": { "type": "string", "minLength": 1 },
+    "workflow_ref": { "const": "WF-VEGA-TREE@1.0" },
+    "task": { "type": "object" },
+    "task_class": { "enum": ["T0", "T1", "T2", "T3", "T4"] },
+    "route": { "const": "tree" },
+    "phase": {
+      "enum": [
+        "mission_understanding",
+        "outcome_definition",
+        "breadth_mapping",
+        "branch_execution",
+        "integration",
+        "verification",
+        "complete"
+      ]
+    },
+    "branches": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/branch" }
+    },
+    "evidence": {
+      "type": "array",
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/evidence" }
+    },
+    "history": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 10000,
+      "items": { "$ref": "#/$defs/history" }
+    },
+    "coverage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["policy", "execution_stage", "map_digest", "advanced_at", "history"],
+      "properties": {
+        "policy": { "enum": ["ADVISORY", "REQUIRED"] },
+        "execution_stage": { "enum": ["WIDE", "DEEP"] },
+        "map_digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{64}$"
+        },
+        "advanced_at": {
+          "type": ["string", "null"],
+          "format": "date-time"
+        },
+        "history": {
+          "type": "array",
+          "maxItems": 100,
+          "items": { "$ref": "#/$defs/coverage_history" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "type", "subject", "method", "timestamp", "outcome"],
+      "allOf": [
+        {
+          "if": {
+            "properties": { "outcome": { "const": "PASS" } },
+            "required": ["outcome"]
+          },
+          "then": {
+            "anyOf": [
+              { "required": ["digest"] },
+              { "required": ["reference"] }
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "type": { "type": "string", "minLength": 1 },
+        "subject": { "type": "string", "minLength": 1 },
+        "method": { "type": "string", "minLength": 1 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "outcome": { "enum": ["PASS", "FAIL", "REVIEW_REQUIRED", "BLOCKED"] },
+        "digest": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-fA-F]{64}$"
+        },
+        "reference": { "type": "string", "minLength": 1 }
+      }
+    },
+    "limitation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["scope", "consequence", "owner", "accepted_at"],
+      "properties": {
+        "scope": { "type": "string", "minLength": 1 },
+        "consequence": { "type": "string", "minLength": 1 },
+        "owner": { "type": "string", "minLength": 1 },
+        "accepted_at": { "type": "string", "format": "date-time" }
+      }
+    },
+    "branch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "kind", "priority", "status", "depends_on", "evidence"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "kind": { "enum": ["primary", "secondary"] },
+        "priority": { "enum": ["P0", "P1", "P2", "DEFERRED"] },
+        "status": {
+          "enum": [
+            "PENDING",
+            "IN_PROGRESS",
+            "VERIFIED",
+            "BLOCKED",
+            "ACCEPTED_LIMITATION"
+          ]
+        },
+        "depends_on": {
+          "type": "array",
+          "maxItems": 1000,
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "uniqueItems": true
+        },
+        "definition_of_done": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "evidence_requirements": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "stop_condition": { "type": "string", "minLength": 1 },
+        "coverage_required": { "type": "boolean" },
+        "minimum_viable_state": { "$ref": "#/$defs/nonempty_text_list" },
+        "baseline_evidence_requirements": { "$ref": "#/$defs/nonempty_text_list" },
+        "shared_interfaces": { "$ref": "#/$defs/text_list" },
+        "deferred_details": { "$ref": "#/$defs/text_list" },
+        "evidence": {
+          "type": "array",
+          "maxItems": 10000,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "blocked_reason": { "type": "string", "minLength": 1 },
+        "limitation": { "$ref": "#/$defs/limitation" }
+      }
+    },
+    "history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "timestamp", "reason"],
+      "properties": {
+        "from": { "type": ["string", "null"] },
+        "to": { "type": "string", "minLength": 1 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "text_list": {
+      "type": "array",
+      "maxItems": 100,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1, "maxLength": 10000 }
+    },
+    "nonempty_text_list": {
+      "allOf": [
+        { "$ref": "#/$defs/text_list" },
+        { "minItems": 1 }
+      ]
+    },
+    "coverage_history": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from", "to", "timestamp", "reason", "override"],
+      "properties": {
+        "from": { "const": "WIDE" },
+        "to": { "const": "DEEP" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "reason": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "override": { "type": "boolean" }
+      }
+    }
+  }
+}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+import json
 from pathlib import Path
 
 import yaml
@@ -8,6 +9,7 @@ import yaml
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[1]
 SKILLS_ROOT = REPOSITORY_ROOT / "plugins" / "vgtree" / "skills"
+SHARED_ROOT = REPOSITORY_ROOT / "plugins" / "vgtree" / "shared"
 
 
 def load_skill(name: str) -> tuple[dict, str]:
@@ -33,6 +35,62 @@ class UsingVgtreeSkillTests(unittest.TestCase):
         self.assertIn("Never", body)
         self.assertIn("untrusted data", body)
         self.assertIn("argument array", body)
+        self.assertIn("vgtree --version", body)
+        self.assertIn("runtime_mode", body)
+        self.assertIn("engine_validation", body)
+        self.assertIn("SKILL_ONLY", body)
+        self.assertIn("one primary", body)
+        self.assertIn("one support", body)
+        self.assertIn("unload condition", body.lower())
+
+    def test_skill_only_contract_never_installs_or_claims_pass(self) -> None:
+        for path in SKILLS_ROOT.glob("*/SKILL.md"):
+            body = path.read_text(encoding="utf-8")
+            with self.subTest(skill=path.parent.name):
+                self.assertIn("SKILL_ONLY", body)
+                self.assertIn("engine_validation=NOT_RUN", body)
+                self.assertIn("REVIEW_REQUIRED", body)
+                self.assertIn("Do not install", body)
+
+    def test_shared_skill_only_resources_are_present_and_canonical(self) -> None:
+        for name in (
+            "capability-map.schema.json",
+            "task.schema.json",
+            "state.schema.json",
+            "receipt.schema.json",
+        ):
+            self.assertEqual(
+                json.loads((SHARED_ROOT / "schemas" / name).read_text(encoding="utf-8")),
+                json.loads(
+                    (REPOSITORY_ROOT / "schemas" / name).read_text(encoding="utf-8")
+                ),
+                name,
+            )
+        for relative in (
+            "references/runtime-modes.md",
+            "references/obsidian-audit-checklist.md",
+            "templates/capability-map.json",
+            "templates/skill-only-work-record.json",
+            "templates/receipt.json",
+        ):
+            self.assertTrue((SHARED_ROOT / relative).is_file(), relative)
+
+    def test_v11_skill_scenarios_disclose_modes_and_forbidden_behavior(self) -> None:
+        scenarios = (
+            "planning-tree-work/scenario-002-capability-map.md",
+            "executing-tree-work/scenario-002-coverage-depth.md",
+            "verifying-tree-work/scenario-002-receipt-binding.md",
+            "using-vgtree/scenario-002-context-budget.md",
+        )
+        for relative in scenarios:
+            text = (REPOSITORY_ROOT / "evals" / relative).read_text(encoding="utf-8")
+            with self.subTest(relative=relative):
+                self.assertIn("Baseline without v1.1 passage", text)
+                self.assertIn("Expected with the Skill", text)
+                self.assertIn("Commands and results", text)
+                self.assertIn("Forbidden behavior", text)
+                self.assertIn("Evidence artifact", text)
+                self.assertIn("Context Budget", text)
 
 
 class PlanningTreeWorkSkillTests(unittest.TestCase):
@@ -45,6 +103,11 @@ class PlanningTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("depends_on", body)
         self.assertIn("DEFERRED", body)
         self.assertIn("vgtree classify", body)
+        self.assertIn("vgtree map validate", body)
+        self.assertIn("vgtree map compile", body)
+        self.assertIn("minimum_viable_state", body)
+        self.assertIn("shared_interfaces", body)
+        self.assertIn("PRE_EXECUTION", body)
 
 
 class ExecutingTreeWorkSkillTests(unittest.TestCase):
@@ -60,6 +123,11 @@ class ExecutingTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("BLOCKED", body)
         self.assertIn("untrusted data", body)
         self.assertIn("argument array", body)
+        self.assertIn("vgtree coverage", body)
+        self.assertIn("vgtree advance-depth", body)
+        self.assertIn("--depth", body)
+        self.assertIn("branch:<branch-id>:baseline", body)
+        self.assertIn("Baseline evidence is not completion evidence", body)
 
 
 class VerifyingTreeWorkSkillTests(unittest.TestCase):
@@ -73,6 +141,9 @@ class VerifyingTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("vgtree complete", body)
         self.assertIn("readback", body.lower())
         self.assertIn("owner", body.lower())
+        self.assertIn("vgtree receipt validate", body)
+        self.assertIn("vgtree receipt evidence", body)
+        self.assertIn("exact receipt bytes", body)
 
 
 class GoverningKnowledgeArchitectureSkillTests(unittest.TestCase):
