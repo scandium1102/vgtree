@@ -361,18 +361,14 @@ def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:
             )
 
         evidence = branch.get("evidence")
-        if branch.get("status") == "VERIFIED" and not (
-            isinstance(evidence, list)
-            and any(
-                isinstance(item, dict) and item.get("outcome") == "PASS"
-                for item in evidence
-            )
+        if branch.get("status") == "VERIFIED" and not has_passing_completion_evidence(
+            evidence
         ):
             issues.append(
                 ValidationIssue(
                     "VERIFIED_EVIDENCE_REQUIRED",
                     f"$.branches[{index}].evidence",
-                    "A verified branch requires passing evidence.",
+                    "A verified branch requires passing non-baseline completion evidence.",
                 )
             )
         if branch.get("status") == "BLOCKED":
@@ -549,6 +545,17 @@ def _has_passing_evidence(evidence: list[Any], evidence_type: str) -> bool:
         isinstance(item, dict)
         and item.get("type") == evidence_type
         and item.get("outcome") == "PASS"
+        for item in evidence
+    )
+
+
+def has_passing_completion_evidence(evidence: object) -> bool:
+    """Return whether branch evidence proves completion rather than baseline presence."""
+
+    return isinstance(evidence, list) and any(
+        isinstance(item, dict)
+        and item.get("outcome") == "PASS"
+        and item.get("type") != "baseline"
         for item in evidence
     )
 

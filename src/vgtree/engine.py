@@ -11,7 +11,12 @@ from vgtree import __version__
 from vgtree.coverage import compute_coverage
 from vgtree.models import Decision, GuardResult, ValidationReport
 from vgtree.routing import TREE_WORKFLOW_REF, classify_task
-from vgtree.validation import validate_evidence, validate_state, validate_task
+from vgtree.validation import (
+    has_passing_completion_evidence,
+    validate_evidence,
+    validate_state,
+    validate_task,
+)
 
 
 PHASES = (
@@ -323,13 +328,13 @@ class VGTREEEngine:
                     "BRANCH_EVIDENCE_REQUIRED",
                     "Terminal and blocked branch states require evidence.",
                 )
-            if status == "VERIFIED" and not any(
-                item.get("outcome") == "PASS" for item in evidence_records
+            if status == "VERIFIED" and not has_passing_completion_evidence(
+                evidence_records
             ):
                 return GuardResult(
                     "REVIEW_REQUIRED",
                     "BRANCH_PASS_EVIDENCE_REQUIRED",
-                    "Verified status requires at least one passing evidence record.",
+                    "Verified status requires passing non-baseline completion evidence.",
                 )
         if status == "BLOCKED" and not blocked_reason:
             return GuardResult(

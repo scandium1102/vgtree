@@ -12,12 +12,12 @@ The current local workflow must not infer authority for GitHub writes, identity 
 
 | Gate | Exact external effect | Required owner action |
 |---|---|---|
-| GitHub integration | Push the branch, create the PR, merge it, and deploy Pages | Scadio explicitly authorizes the bounded GitHub integration batch after local verification |
-| Version release | Create immutable tag `v1.1.0`, GitHub Release, and PyPI `1.1.0` | Scadio explicitly authorizes the exact tag after integrated CI and Pages readback |
-| Individual verification | Upload or submit identity material in the OpenAI Portal | Scadio performs this personally; the agent does not read, handle, or upload identity documents |
-| Skills-only draft | Create the draft, upload the exact verified bundle, and enter listing data | Scadio explicitly authorizes Portal draft creation and upload |
-| Review submission | Press `Submit for Review` | Scadio gives fresh action-time authorization after the Portal scan and field readback |
-| Directory publication | Press `Publish` after approval | Scadio gives a separate fresh authorization after approval readback |
+| GitHub integration | Push the branch, create the PR, merge it, and deploy Pages | The release owner explicitly authorizes the bounded GitHub integration batch after local verification |
+| Version release | Create immutable tag `v1.1.0`, GitHub Release, and PyPI `1.1.0` | The release owner explicitly authorizes the exact tag after integrated CI and Pages readback |
+| Individual verification | Upload or submit identity material in the OpenAI Portal | The release owner performs this personally; the agent does not read, handle, or upload identity documents |
+| Skills-only draft | Create the draft, upload the exact verified bundle, and enter listing data | The release owner explicitly authorizes Portal draft creation and upload |
+| Review submission | Press `Submit for Review` | The release owner gives fresh action-time authorization after the Portal scan and field readback |
+| Directory publication | Press `Publish` after approval | The release owner gives a separate fresh authorization after approval readback |
 
 Login state, an approved RFC, an earlier gate, or a successful local test does not imply a later gate.
 
