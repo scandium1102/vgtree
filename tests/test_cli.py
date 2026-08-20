@@ -37,6 +37,49 @@ class CoreCliTests(unittest.TestCase):
             self.assertEqual(payload["status"], "PASS")
             self.assertEqual(payload["data"]["decision"]["task_class"], "T3")
 
+    def test_classify_uses_explicit_workflow_registry(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            task_path = Path(directory) / "task.json"
+            registry_path = Path(directory) / "workflows.json"
+            task = valid_task()
+            task["specialized_match"] = {
+                "workflow_ref": "WF-SPECIAL@1.0",
+                "registered": True,
+                "trigger_match": True,
+                "context_match": True,
+                "capability_match": True,
+                "outcome_match": True,
+                "safety_match": True,
+            }
+            task_path.write_text(json.dumps(task), encoding="utf-8")
+            registry_path.write_text(
+                json.dumps(
+                    {
+                        "workflows": [
+                            {"workflow_ref": "WF-SPECIAL@1.0", "status": "ACTIVE"}
+                        ]
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            without_registry = run_cli("classify", "--task", str(task_path))
+            with_registry = run_cli(
+                "classify",
+                "--task",
+                str(task_path),
+                "--registry",
+                str(registry_path),
+            )
+
+            self.assertEqual(
+                json.loads(without_registry.stdout)["data"]["decision"]["route"], "tree"
+            )
+            self.assertEqual(
+                json.loads(with_registry.stdout)["data"]["decision"]["route"],
+                "specialized",
+            )
+
     def test_init_writes_state_and_blocks_existing_destination(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             task_path = Path(directory) / "task.json"

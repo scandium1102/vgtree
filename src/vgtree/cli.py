@@ -39,10 +39,12 @@ def build_parser() -> argparse.ArgumentParser:
 
     classify = subparsers.add_parser("classify", help="Classify and route a task.")
     classify.add_argument("--task", required=True, type=Path)
+    classify.add_argument("--registry", type=Path)
 
     initialize = subparsers.add_parser("init", help="Create a new workflow state.")
     initialize.add_argument("--task", required=True, type=Path)
     initialize.add_argument("--state", required=True, type=Path)
+    initialize.add_argument("--registry", type=Path)
 
     next_command = subparsers.add_parser("next", help="Evaluate and advance one phase.")
     next_command.add_argument("--state", required=True, type=Path)
@@ -140,7 +142,10 @@ def _classify(arguments: argparse.Namespace) -> GuardResult:
     loaded = _load_json(arguments.task, "TASK")
     if isinstance(loaded, GuardResult):
         return loaded
-    initialized = VGTREEEngine().initialize(loaded)
+    engine = _engine_from_registry(arguments.registry)
+    if isinstance(engine, GuardResult):
+        return engine
+    initialized = engine.initialize(loaded)
     if initialized.status != "PASS":
         return initialized
     return GuardResult(
@@ -161,7 +166,10 @@ def _initialize(arguments: argparse.Namespace) -> GuardResult:
     loaded = _load_json(arguments.task, "TASK")
     if isinstance(loaded, GuardResult):
         return loaded
-    result = VGTREEEngine().initialize(loaded)
+    engine = _engine_from_registry(arguments.registry)
+    if isinstance(engine, GuardResult):
+        return engine
+    result = engine.initialize(loaded)
     if result.status != "PASS":
         return result
     saved = StateStore().save(arguments.state, result.data["state"])
@@ -318,6 +326,41 @@ def _load_json(path: Path, prefix: str) -> Any | GuardResult:
             f"{prefix}_JSON_INVALID",
             f"Invalid JSON at line {exc.lineno}, column {exc.colno}.",
         )
+
+
+def _engine_from_registry(path: Path | None) -> VGTREEEngine | GuardResult:
+    if path is None:
+        return VGTREEEngine()
+    loaded = _load_json(path, "WORKFLOW_REGISTRY")
+    if isinstance(loaded, GuardResult):
+        return loaded
+    if not isinstance(loaded, dict) or set(loaded) != {"workflows"}:
+        return GuardResult(
+            "FAIL",
+            "WORKFLOW_REGISTRY_INVALID",
+            "Registry must contain only a workflows array.",
+        )
+    workflows = loaded.get("workflows")
+    if not isinstance(workflows, list):
+        return GuardResult(
+            "FAIL", "WORKFLOW_REGISTRY_INVALID", "workflows must be an array."
+        )
+    registered: set[str] = set()
+    for item in workflows:
+        if (
+            not isinstance(item, dict)
+            or set(item) != {"workflow_ref", "status"}
+            or not isinstance(item.get("workflow_ref"), str)
+            or item.get("status") not in {"ACTIVE", "VERIFIED", "INACTIVE"}
+        ):
+            return GuardResult(
+                "FAIL",
+                "WORKFLOW_REGISTRY_INVALID",
+                "Each workflow requires workflow_ref and a valid status.",
+            )
+        if item["status"] in {"ACTIVE", "VERIFIED"}:
+            registered.add(item["workflow_ref"])
+    return VGTREEEngine(registered_workflows=registered)
 
 
 def _emit(result: GuardResult) -> None:
