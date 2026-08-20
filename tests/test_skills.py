@@ -86,5 +86,20 @@ class GoverningKnowledgeArchitectureSkillTests(unittest.TestCase):
         self.assertIn("vgtree obsidian audit", body)
 
 
+class BuildingObsidianWorkspacesSkillTests(unittest.TestCase):
+    def test_obsidian_skill_separates_existing_and_new_vaults(self) -> None:
+        metadata, body = load_skill("building-obsidian-workspaces")
+
+        self.assertEqual(metadata["name"], "building-obsidian-workspaces")
+        self.assertIn("obsidian", metadata["description"].lower())
+        self.assertIn("existing vault", body.lower())
+        self.assertIn("new or empty", body.lower())
+        self.assertIn("vgtree obsidian audit", body)
+        self.assertIn("vgtree obsidian plan", body)
+        self.assertIn("vgtree obsidian scaffold", body)
+        self.assertIn("--live", body)
+        self.assertIn("does not apply", body.lower())
+
+
 if __name__ == "__main__":
     unittest.main()

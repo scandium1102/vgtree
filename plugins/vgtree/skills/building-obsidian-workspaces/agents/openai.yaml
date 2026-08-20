@@ -1,0 +1,4 @@
+interface:
+  display_name: "Building Obsidian Workspaces"
+  short_description: "Audit vaults or create safe VGTREE starters"
+  default_prompt: "Use $building-obsidian-workspaces to audit or scaffold this Obsidian workspace safely."
