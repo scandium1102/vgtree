@@ -8,7 +8,7 @@ class PackageSmokeTests(unittest.TestCase):
     def test_package_exports_version(self) -> None:
         import vgtree
 
-        self.assertEqual(vgtree.__version__, "1.0.0")
+        self.assertEqual(vgtree.__version__, "1.1.0")
 
     def test_module_help_is_available(self) -> None:
         completed = subprocess.run(
@@ -29,7 +29,7 @@ class PackageSmokeTests(unittest.TestCase):
             text=True,
         )
         self.assertEqual(completed.returncode, 0, completed.stderr)
-        self.assertEqual(completed.stdout.strip(), "vgtree 1.0.0")
+        self.assertEqual(completed.stdout.strip(), "vgtree 1.1.0")
 
     def test_package_contains_capability_schema(self) -> None:
         schema = files("vgtree").joinpath("schemas", "capability-map.schema.json")

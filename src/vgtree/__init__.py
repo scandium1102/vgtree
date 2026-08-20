@@ -1,6 +1,6 @@
 """VGTREE public package."""
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 from vgtree.engine import VGTREEEngine
 from vgtree.models import Decision, GuardResult, ValidationReport

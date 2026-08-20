@@ -1,12 +1,12 @@
 {
   "name": "vgtree",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Verifiable tree workflows for AI agents and Obsidian.",
   "author": {
     "name": "VGTREE Contributors",
     "url": "https://github.com/scandium1102"
   },
-  "homepage": "https://github.com/scandium1102/vgtree",
+  "homepage": "https://scandium1102.github.io/vgtree/",
   "repository": "https://github.com/scandium1102/vgtree",
   "license": "MIT",
   "keywords": ["agents", "workflow", "verification", "obsidian", "knowledge-management"],
@@ -14,13 +14,13 @@
   "interface": {
     "displayName": "VGTREE",
     "shortDescription": "Branch complex work into verifiable outcomes",
-    "longDescription": "Plan, execute, and verify complex tree workflows with persistent evidence gates, UID-first knowledge architecture, and safe Obsidian workspace tools.",
+    "longDescription": "Map complex work into evidence-backed branches, cover the wide pass, deepen safely, and prove outcomes with inspectable receipts and optional deterministic CLI enforcement.",
     "developerName": "VGTREE Contributors",
     "category": "Productivity",
     "capabilities": ["Planning", "Verification", "Obsidian"],
-    "websiteURL": "https://github.com/scandium1102/vgtree",
-    "privacyPolicyURL": "https://github.com/scandium1102/vgtree/blob/main/PRIVACY.md",
-    "termsOfServiceURL": "https://github.com/scandium1102/vgtree/blob/main/TERMS.md",
+    "websiteURL": "https://scandium1102.github.io/vgtree/",
+    "privacyPolicyURL": "https://scandium1102.github.io/vgtree/privacy/",
+    "termsOfServiceURL": "https://scandium1102.github.io/vgtree/terms/",
     "defaultPrompt": [
       "Turn this complex request into a verified VGTREE plan.",
       "Execute this VGTREE state without opening rabbit holes.",

@@ -5,18 +5,21 @@ VGTREE is a thin control plane. It routes work, persists state, enforces branch 
 ## Components
 
 ```text
+Capability Map (optional)
+  -> deterministic task compilation
 Task JSON
   -> schema validation
   -> deterministic classifier
   -> direct | registry-verified specialized | tree route
   -> initialized branch DAG and persistent state
-  -> guard / evidence / legal branch transitions
+  -> wide-pass coverage / one-way deep transition
+  -> guard / receipts / evidence / legal branch transitions
   -> integration evidence
   -> final-verification evidence
   -> computed completion result
 ```
 
-The CLI and Python API use the same engine. The six Agent Skills teach routing and operational behavior without duplicating engine logic. The OpenAI plugin packages Skills only. The Obsidian layer audits or scaffolds knowledge surfaces without weakening core evidence gates.
+The CLI and Python API use the same engine. The six Agent Skills teach routing and operational behavior without duplicating engine logic. In ENGINE mode they use deterministic CLI gates. In SKILL_ONLY mode they use shared schemas/templates for useful planning and review, report `engine_validation=NOT_RUN`, and cannot claim overall `PASS`. The OpenAI plugin packages Skills only. The Obsidian layer audits or scaffolds knowledge surfaces without weakening core evidence gates.
 
 ## Classification
 
@@ -26,7 +29,13 @@ A specialized workflow is selected only when its reference appears in an explici
 
 ## State model
 
-State schema 2.0 keeps the compatibility reference `WF-VEGA-TREE@1.0` and adds `engine_version`. Branches form a DAG and store kind, priority, status, dependencies, optional Definition of Done, evidence requirements, stop condition, and typed evidence.
+State schema 2.0 remains the VGTREE 1.0-compatible path for normal tasks and Capability Maps with policy `OFF`. State 2.1 is opt-in for `ADVISORY` and `REQUIRED` maps. It binds the map digest and immutable branch coverage fields to the embedded task and adds a branch-execution substate:
+
+```text
+WIDE -> DEEP
+```
+
+Coverage is recomputed from exact passing baseline evidence. `REQUIRED` blocks the transition; incomplete `ADVISORY` needs a reasoned override. Baseline evidence never substitutes for branch acceptance, integration, or final-verification evidence.
 
 Legal phases are:
 
@@ -48,10 +57,12 @@ Passing evidence requires a SHA-256 digest or durable reference. A verified bran
 
 VGTREE verifies schema, provenance fields, state consistency, and gate presence. It cannot independently prove that a caller fabricated neither a command result nor a remote reference. Skills therefore require evidence to come from the actual domain tool and exact final subject.
 
+Detailed Tool Receipts are immutable sidecar JSON files below an explicit receipt root. VGTREE rejects path escape, links, non-files, and files over 4 MiB, hashes the exact bytes read, and generates compact evidence carrying that digest and reference. Receipt fields remain untrusted data and are never executed. Structural validation and digest binding do not prove that the producing tool told the truth. Local state, receipt, and vault directories are same-user trust boundaries rather than hostile multi-user isolation.
+
 ## Result contract
 
 Every operational command emits JSON with `status`, `code`, `message`, and `data` and maps status to exit `0/1/2/3` for `PASS/FAIL/REVIEW_REQUIRED/BLOCKED`.
 
-## Deliberate v1 exclusions
+## Deliberate v1.1 exclusions
 
 No MCP server, hosted runner, telemetry, web dashboard, custom Obsidian plugin, automatic existing-vault mutation, or multi-user coordination service is included.

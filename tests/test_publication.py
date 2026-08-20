@@ -47,10 +47,25 @@ class PublicDocumentationTests(unittest.TestCase):
         for relative in ("README.md", "README.zh-TW.md"):
             text = (ROOT / relative).read_text(encoding="utf-8")
             with self.subTest(relative=relative):
-                self.assertIn("pip install git+https://github.com/scandium1102/vgtree.git@v1.0.0", text)
+                self.assertIn("pip install git+https://github.com/scandium1102/vgtree.git@v1.1.0", text)
                 self.assertIn("vgtree classify", text)
                 self.assertIn("vgtree obsidian scaffold", text)
                 self.assertIn("six", text.lower() if relative == "README.md" else text)
+                self.assertIn("Capability Map", text)
+                self.assertIn("Coverage Gate", text)
+                self.assertIn("Receipts", text)
+                self.assertIn("Context Budget", text)
+                self.assertIn("Obsidian", text)
+
+    def test_v11_public_trust_boundaries_are_documented(self) -> None:
+        privacy = (ROOT / "PRIVACY.md").read_text(encoding="utf-8").lower()
+        security = (ROOT / "SECURITY.md").read_text(encoding="utf-8").lower()
+        changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+        self.assertIn("no telemetry", privacy)
+        self.assertIn("receipt", privacy)
+        self.assertIn("structural", security)
+        self.assertIn("receipt root", security)
+        self.assertIn("## [1.1.0] - 2026-08-21", changelog)
 
     def test_examples_are_valid_json(self) -> None:
         for path in (ROOT / "examples").glob("*.json"):
