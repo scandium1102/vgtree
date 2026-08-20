@@ -179,7 +179,9 @@ def _initialize(arguments: argparse.Namespace) -> GuardResult:
     result = engine.initialize(loaded)
     if result.status != "PASS":
         return result
-    saved = StateStore().save(arguments.state, result.data["state"])
+    saved = StateStore().save(
+        arguments.state, result.data["state"], create_only=True
+    )
     if saved.status != "PASS":
         return saved
     return GuardResult(
@@ -310,14 +312,7 @@ def _obsidian_plan(
 def _mutate_state(
     state_path: Path, operation: Callable[[dict[str, Any]], GuardResult]
 ) -> GuardResult:
-    loaded = StateStore().load(state_path)
-    if loaded.status != "PASS":
-        return loaded
-    result = operation(loaded.data["state"])
-    if result.status != "PASS" or "state" not in result.data:
-        return result
-    saved = StateStore().save(state_path, result.data["state"])
-    return result if saved.status == "PASS" else saved
+    return StateStore().update(state_path, operation)
 
 
 def _load_json(path: Path, prefix: str) -> Any | GuardResult:

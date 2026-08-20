@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import json
+import os
 import tempfile
+import threading
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
+from vgtree.engine import VGTREEEngine
 from vgtree.migration import migrate_state, migrate_state_file
 from vgtree.store import StateStore
 
-from test_engine import initialized_state
+from test_engine import evidence, initialized_state
 
 
 def legacy_state() -> dict:
@@ -118,6 +122,70 @@ class StateStoreTests(unittest.TestCase):
 
             self.assertEqual(result.status, "FAIL")
             self.assertEqual(result.code, "STATE_JSON_INVALID")
+
+    def test_update_holds_lock_across_load_mutation_and_commit(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "state.json"
+            store = StateStore()
+            self.assertEqual(store.save(path, initialized_state()).status, "PASS")
+            entered = threading.Event()
+            release = threading.Event()
+            first_results = []
+
+            def first_mutation(state: dict):
+                entered.set()
+                release.wait(timeout=5)
+                return VGTREEEngine().record_evidence(state, evidence("ev-first", "test"))
+
+            worker = threading.Thread(
+                target=lambda: first_results.append(store.update(path, first_mutation))
+            )
+            worker.start()
+            self.assertTrue(entered.wait(timeout=5))
+
+            collision = StateStore().update(
+                path,
+                lambda state: VGTREEEngine().record_evidence(
+                    state, evidence("ev-second", "test")
+                ),
+            )
+            release.set()
+            worker.join(timeout=5)
+
+            self.assertEqual(collision.status, "BLOCKED")
+            self.assertEqual(collision.code, "STATE_LOCKED")
+            self.assertEqual(first_results[0].status, "PASS")
+
+            second = store.update(
+                path,
+                lambda state: VGTREEEngine().record_evidence(
+                    state, evidence("ev-second", "test")
+                ),
+            )
+            loaded = store.load(path)
+            self.assertEqual(second.status, "PASS", second)
+            self.assertEqual(
+                {item["id"] for item in loaded.data["state"]["evidence"]},
+                {"ev-first", "ev-second"},
+            )
+
+    def test_create_only_commit_preserves_racing_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "state.json"
+            original_link = os.link
+
+            def racing_link(source: Path, destination: Path) -> None:
+                Path(destination).write_text("competing bytes", encoding="utf-8")
+                original_link(source, destination)
+
+            with patch("vgtree.store.os.link", side_effect=racing_link):
+                result = StateStore().save(
+                    path, initialized_state(), create_only=True
+                )
+
+            self.assertEqual(result.status, "BLOCKED")
+            self.assertEqual(result.code, "STATE_OUTPUT_EXISTS")
+            self.assertEqual(path.read_text(encoding="utf-8"), "competing bytes")
 
 
 class MigrationTests(unittest.TestCase):

@@ -220,7 +220,15 @@ def migrate_state_file(input_path: str | Path, output_path: str | Path) -> Guard
     migrated = migrate_state(legacy)
     if migrated.status != "PASS":
         return migrated
-    saved = StateStore().save(destination, migrated.data["state"])
+    saved = StateStore().save(
+        destination, migrated.data["state"], create_only=True
+    )
+    if saved.code == "STATE_OUTPUT_EXISTS":
+        return GuardResult(
+            "BLOCKED",
+            "MIGRATION_OUTPUT_EXISTS",
+            "Migration never overwrites an existing output file.",
+        )
     if saved.status != "PASS":
         return saved
     return GuardResult(
