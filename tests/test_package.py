@@ -21,6 +21,16 @@ class PackageSmokeTests(unittest.TestCase):
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("VGTREE", completed.stdout)
 
+    def test_cli_version_is_available(self) -> None:
+        completed = subprocess.run(
+            [sys.executable, "-m", "vgtree", "--version"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(completed.returncode, 0, completed.stderr)
+        self.assertEqual(completed.stdout.strip(), "vgtree 1.0.0")
+
     def test_package_contains_capability_schema(self) -> None:
         schema = files("vgtree").joinpath("schemas", "capability-map.schema.json")
         self.assertTrue(schema.is_file())

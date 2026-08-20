@@ -8,6 +8,7 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from vgtree import __version__
 from vgtree.capability import (
     compile_capability_map,
     load_capability_map,
@@ -68,6 +69,7 @@ def build_parser() -> argparse.ArgumentParser:
     advance_depth = subparsers.add_parser(
         "advance-depth", help="Advance one opted-in state from wide to deep work."
     )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     advance_depth.add_argument("--state", required=True, type=Path)
     advance_depth.add_argument("--reason")
 
