@@ -1,0 +1,4 @@
+interface:
+  display_name: "Planning Tree Work"
+  short_description: "Build a validated branch DAG for complex outcomes"
+  default_prompt: "Use $planning-tree-work to turn this request into a validated VGTREE plan."

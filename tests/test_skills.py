@@ -33,5 +33,17 @@ class UsingVgtreeSkillTests(unittest.TestCase):
         self.assertIn("Never", body)
 
 
+class PlanningTreeWorkSkillTests(unittest.TestCase):
+    def test_planning_skill_requires_dag_and_breadth(self) -> None:
+        metadata, body = load_skill("planning-tree-work")
+
+        self.assertEqual(metadata["name"], "planning-tree-work")
+        self.assertIn("plan", metadata["description"].lower())
+        self.assertIn("Definition of Done", body)
+        self.assertIn("depends_on", body)
+        self.assertIn("DEFERRED", body)
+        self.assertIn("vgtree classify", body)
+
+
 if __name__ == "__main__":
     unittest.main()

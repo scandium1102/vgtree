@@ -59,6 +59,31 @@ class EngineInitializationTests(unittest.TestCase):
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.code, "TASK_INVALID")
 
+    def test_branch_definition_of_done_and_evidence_plan_are_preserved(self) -> None:
+        task = valid_task()
+        task["branches"] = [
+            {
+                "id": "build",
+                "title": "Build",
+                "kind": "primary",
+                "priority": "P0",
+                "depends_on": [],
+                "definition_of_done": ["Feature works", "Regression suite passes"],
+                "evidence_requirements": ["test report", "artifact digest"],
+                "stop_condition": "Stop after two probes without a decision delta.",
+            }
+        ]
+
+        result = VGTREEEngine().initialize(task)
+
+        self.assertEqual(result.status, "PASS", result)
+        branch = result.data["state"]["branches"][0]
+        self.assertEqual(branch["definition_of_done"][0], "Feature works")
+        self.assertEqual(branch["evidence_requirements"][0], "test report")
+        self.assertEqual(
+            branch["stop_condition"], "Stop after two probes without a decision delta."
+        )
+
 
 class EngineTransitionTests(unittest.TestCase):
     def test_early_phases_advance_in_order(self) -> None:
