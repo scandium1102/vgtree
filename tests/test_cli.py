@@ -7,9 +7,11 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from test_capability import valid_map
 from test_engine import at_phase, evidence, initialized_state
 from test_persistence import legacy_state
 from test_validation import valid_task
+from vgtree.validation import validate_task
 
 
 def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -22,6 +24,27 @@ def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 
 class CoreCliTests(unittest.TestCase):
+    def test_map_validate_and_compile_never_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "map.json"
+            output = root / "task.json"
+            source.write_text(json.dumps(valid_map()), encoding="utf-8")
+
+            validated = run_cli("map", "validate", "--map", str(source))
+            first = run_cli(
+                "map", "compile", "--map", str(source), "--output", str(output)
+            )
+            second = run_cli(
+                "map", "compile", "--map", str(source), "--output", str(output)
+            )
+
+            self.assertEqual(validated.returncode, 0, validated.stderr)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 3)
+            self.assertEqual(json.loads(second.stdout)["code"], "TASK_OUTPUT_EXISTS")
+            self.assertTrue(validate_task(json.loads(output.read_text(encoding="utf-8"))).valid)
+
     def test_classify_emits_pass_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             task_path = Path(directory) / "task.json"

@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import unittest
+from importlib.resources import files
 
 
 class PackageSmokeTests(unittest.TestCase):
@@ -19,6 +20,10 @@ class PackageSmokeTests(unittest.TestCase):
 
         self.assertEqual(completed.returncode, 0, completed.stderr)
         self.assertIn("VGTREE", completed.stdout)
+
+    def test_package_contains_capability_schema(self) -> None:
+        schema = files("vgtree").joinpath("schemas", "capability-map.schema.json")
+        self.assertTrue(schema.is_file())
 
 
 if __name__ == "__main__":

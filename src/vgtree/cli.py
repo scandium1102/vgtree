@@ -8,6 +8,11 @@ import sys
 from pathlib import Path
 from typing import Any, Callable
 
+from vgtree.capability import (
+    compile_capability_map,
+    load_capability_map,
+    validate_capability_map,
+)
 from vgtree.engine import VGTREEEngine
 from vgtree.migration import migrate_state_file
 from vgtree.models import GuardResult
@@ -87,6 +92,18 @@ def build_parser() -> argparse.ArgumentParser:
     migrate.add_argument("--input", required=True, type=Path)
     migrate.add_argument("--output", required=True, type=Path)
 
+    map_command = subparsers.add_parser("map", help="Capability Map tools.")
+    map_commands = map_command.add_subparsers(dest="map_command", required=True)
+    map_validate = map_commands.add_parser(
+        "validate", help="Validate a Capability Map."
+    )
+    map_validate.add_argument("--map", required=True, dest="map_path", type=Path)
+    map_compile = map_commands.add_parser(
+        "compile", help="Compile a Capability Map into a task."
+    )
+    map_compile.add_argument("--map", required=True, dest="map_path", type=Path)
+    map_compile.add_argument("--output", required=True, type=Path)
+
     obsidian = subparsers.add_parser("obsidian", help="Obsidian workspace tools.")
     obsidian_commands = obsidian.add_subparsers(
         dest="obsidian_command", required=True
@@ -134,6 +151,7 @@ def _dispatch(arguments: argparse.Namespace) -> GuardResult:
         "record-evidence": _record_evidence,
         "set-branch": _set_branch,
         "migrate-state": _migrate,
+        "map": _map,
         "obsidian": _obsidian,
     }
     return commands[arguments.command](arguments)
@@ -256,6 +274,48 @@ def _migrate(arguments: argparse.Namespace) -> GuardResult:
     return migrate_state_file(arguments.input, arguments.output)
 
 
+def _map(arguments: argparse.Namespace) -> GuardResult:
+    if arguments.map_command == "compile" and arguments.output.exists():
+        return GuardResult(
+            "BLOCKED",
+            "TASK_OUTPUT_EXISTS",
+            "Capability Map compilation never overwrites an existing task.",
+        )
+    loaded = load_capability_map(arguments.map_path)
+    if isinstance(loaded, GuardResult):
+        return loaded
+    value, digest = loaded
+    report = validate_capability_map(value)
+    if arguments.map_command == "validate":
+        return GuardResult(
+            "PASS" if report.valid else "FAIL",
+            "CAPABILITY_MAP_VALID" if report.valid else "CAPABILITY_MAP_INVALID",
+            "Capability Map passed validation."
+            if report.valid
+            else "Capability Map failed validation.",
+            {"digest": digest, "validation": report.as_dict()},
+        )
+    if arguments.map_command != "compile":
+        return GuardResult("FAIL", "CLI_USAGE_ERROR", "Unknown map command.")
+    result = compile_capability_map(value, source_digest=digest)
+    if result.status != "PASS":
+        return result
+    saved = _write_json_create_only(
+        arguments.output,
+        result.data["task"],
+        exists_code="TASK_OUTPUT_EXISTS",
+        failure_code="TASK_OUTPUT_WRITE_FAILED",
+    )
+    if saved is not None:
+        return saved
+    return GuardResult(
+        "PASS",
+        "CAPABILITY_MAP_COMPILED",
+        "Capability Map compiled to a new task file.",
+        {**result.data, "digest": digest, "output": str(arguments.output)},
+    )
+
+
 def _obsidian(arguments: argparse.Namespace) -> GuardResult:
     workspace = ObsidianWorkspace()
     if arguments.obsidian_command == "audit":
@@ -328,6 +388,25 @@ def _load_json(path: Path, prefix: str) -> Any | GuardResult:
             f"{prefix}_JSON_INVALID",
             f"Invalid JSON at line {exc.lineno}, column {exc.colno}.",
         )
+
+
+def _write_json_create_only(
+    path: Path,
+    value: object,
+    *,
+    exists_code: str,
+    failure_code: str,
+) -> GuardResult | None:
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        with path.open("x", encoding="utf-8", newline="\n") as handle:
+            json.dump(value, handle, ensure_ascii=False, indent=2, sort_keys=True)
+            handle.write("\n")
+    except FileExistsError:
+        return GuardResult("BLOCKED", exists_code, "Output file already exists.")
+    except (OSError, TypeError, ValueError):
+        return GuardResult("FAIL", failure_code, "Output file could not be written.")
+    return None
 
 
 def _engine_from_registry(path: Path | None) -> VGTREEEngine | GuardResult:

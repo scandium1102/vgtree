@@ -4,6 +4,8 @@ import json
 import unittest
 from pathlib import Path
 
+from vgtree.capability import validate_capability_map
+
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -28,6 +30,7 @@ class PublicDocumentationTests(unittest.TestCase):
             "examples/task.json",
             "examples/evidence.json",
             "examples/workflow-registry.json",
+            "examples/capability-map.json",
         )
         for relative in required:
             with self.subTest(relative=relative):
@@ -48,10 +51,20 @@ class PublicDocumentationTests(unittest.TestCase):
                 json.loads(path.read_text(encoding="utf-8"))
 
     def test_root_schemas_match_packaged_schemas(self) -> None:
-        for name in ("task.schema.json", "state.schema.json"):
+        for name in (
+            "task.schema.json",
+            "state.schema.json",
+            "capability-map.schema.json",
+        ):
             root_schema = (ROOT / "schemas" / name).read_bytes()
             package_schema = (ROOT / "src" / "vgtree" / "schemas" / name).read_bytes()
             self.assertEqual(root_schema, package_schema, name)
+
+    def test_capability_map_example_is_valid(self) -> None:
+        example = json.loads(
+            (ROOT / "examples" / "capability-map.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(validate_capability_map(example).valid)
 
     def test_public_text_has_no_private_workspace_markers(self) -> None:
         forbidden = (
