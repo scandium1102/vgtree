@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import json
 import re
-from collections import deque
 from datetime import datetime
 from importlib.resources import files
 from typing import Any, Iterable
 
 from jsonschema import Draft202012Validator, FormatChecker
 
+from vgtree.dag import has_cycle
 from vgtree.models import ValidationIssue, ValidationReport
 from vgtree.semantics import compute_task_class
 
@@ -314,7 +314,7 @@ def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:
                     )
                 )
 
-    if _has_cycle(graph):
+    if has_cycle(graph):
         issues.append(
             ValidationIssue(
                 "DEPENDENCY_CYCLE",
@@ -323,29 +323,6 @@ def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:
             )
         )
     return issues
-
-
-def _has_cycle(graph: dict[str, list[str]]) -> bool:
-    indegree = {node: 0 for node in graph}
-    dependents: dict[str, list[str]] = {node: [] for node in graph}
-    for node, dependencies in graph.items():
-        for dependency in dependencies:
-            if dependency not in graph:
-                continue
-            indegree[node] += 1
-            dependents[dependency].append(node)
-
-    ready = deque(node for node, count in indegree.items() if count == 0)
-    visited = 0
-    while ready:
-        node = ready.popleft()
-        visited += 1
-        for dependent in dependents[node]:
-            indegree[dependent] -= 1
-            if indegree[dependent] == 0:
-                ready.append(dependent)
-    return visited != len(graph)
-
 
 def _history_issues(state: dict[str, Any]) -> list[ValidationIssue]:
     history = state.get("history")
