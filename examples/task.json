@@ -1,0 +1,37 @@
+{
+  "task_id": "example-release",
+  "title": "Build and verify an example release",
+  "description": "A small Tree-route example with build and documentation branches.",
+  "explicit_class": "T2",
+  "signals": {
+    "estimated_files": 4,
+    "migration": false,
+    "project_scale": false,
+    "external_effect": false,
+    "destructive": false,
+    "cross_system": false,
+    "irreversible": false
+  },
+  "branches": [
+    {
+      "id": "build",
+      "title": "Build the release artifact",
+      "kind": "primary",
+      "priority": "P0",
+      "depends_on": [],
+      "definition_of_done": ["Artifact builds and tests pass"],
+      "evidence_requirements": ["Fresh test report and artifact digest"],
+      "stop_condition": "Stop when the artifact is verified or a blocker is proven"
+    },
+    {
+      "id": "docs",
+      "title": "Document installation and verification",
+      "kind": "secondary",
+      "priority": "P1",
+      "depends_on": ["build"],
+      "definition_of_done": ["Quick start is reproducible"],
+      "evidence_requirements": ["Clean-room command transcript"],
+      "stop_condition": "Stop when a new user can reproduce the quick start"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "workflows": [
+    {
+      "workflow_ref": "WF-EXAMPLE-SPECIALIZED@1.0",
+      "status": "ACTIVE"
+    }
+  ]
+}

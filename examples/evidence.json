@@ -1,0 +1,10 @@
+{
+  "id": "example-build-test",
+  "type": "test",
+  "subject": "example release artifact",
+  "method": "python -m unittest discover -s tests -v",
+  "timestamp": "2026-08-20T00:00:00Z",
+  "outcome": "PASS",
+  "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "reference": "local test transcript for the example"
+}
