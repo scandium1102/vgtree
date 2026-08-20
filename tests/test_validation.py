@@ -20,6 +20,22 @@ def valid_task() -> dict:
             "cross_system": False,
             "irreversible": False,
         },
+        "branches": [
+            {
+                "id": "primary-build",
+                "title": "Build the product",
+                "kind": "primary",
+                "priority": "P0",
+                "depends_on": [],
+            },
+            {
+                "id": "secondary-docs",
+                "title": "Document the product",
+                "kind": "secondary",
+                "priority": "P1",
+                "depends_on": ["primary-build"],
+            },
+        ],
     }
 
 
@@ -160,6 +176,59 @@ class StateValidationTests(unittest.TestCase):
         state["branches"][0]["trust_me"] = True
 
         self.assertFalse(validate_state(state).valid)
+
+    def test_required_task_branch_cannot_be_removed_from_state(self) -> None:
+        state = valid_state()
+        state["branches"] = [state["branches"][1]]
+
+        report = validate_state(state)
+
+        self.assertIn("BRANCH_SPEC_MISSING", {issue.code for issue in report.issues})
+
+    def test_primary_task_branch_cannot_be_demoted_in_state(self) -> None:
+        state = valid_state()
+        state["branches"][0]["kind"] = "secondary"
+
+        report = validate_state(state)
+
+        self.assertIn("BRANCH_SPEC_MISMATCH", {issue.code for issue in report.issues})
+
+    def test_task_branch_dependency_cannot_be_changed_in_state(self) -> None:
+        state = valid_state()
+        state["branches"][1]["depends_on"] = []
+
+        report = validate_state(state)
+
+        self.assertIn("BRANCH_SPEC_MISMATCH", {issue.code for issue in report.issues})
+
+    def test_task_branch_completion_spec_cannot_be_changed_in_state(self) -> None:
+        state = valid_state()
+        state["task"]["branches"][0]["definition_of_done"] = ["Tests pass"]
+        state["branches"][0]["definition_of_done"] = ["Skip tests"]
+
+        report = validate_state(state)
+
+        self.assertIn("BRANCH_SPEC_MISMATCH", {issue.code for issue in report.issues})
+
+    def test_derived_default_branch_is_bound_to_task(self) -> None:
+        state = valid_state()
+        state["task"].pop("branches")
+        state["branches"] = [
+            {
+                "id": "primary-outcome",
+                "title": state["task"]["title"],
+                "kind": "primary",
+                "priority": "P0",
+                "status": "PENDING",
+                "depends_on": [],
+                "evidence": [],
+            }
+        ]
+
+        self.assertTrue(validate_state(state).valid)
+        state["branches"].clear()
+        report = validate_state(state)
+        self.assertIn("BRANCH_SPEC_MISSING", {issue.code for issue in report.issues})
 
     def test_primary_branch_cannot_be_deferred(self) -> None:
         state = valid_state()

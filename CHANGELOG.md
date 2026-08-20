@@ -17,6 +17,7 @@ All notable changes to VGTREE are documented here.
 
 - Restricted command-adjacent identifiers and documented argument-array handling for untrusted input.
 - Recomputed task class, phase/history coherence, and evidence gates during state validation.
+- Bound every mutable state branch to the immutable branch specification embedded in its task.
 - Bounded DAG size and replaced recursive cycle traversal with an iterative algorithm.
 - Serialized state read-modify-write transactions and made first-write commits non-overwriting.
 - Contained Obsidian audit reads to regular files inside the selected vault with size limits.

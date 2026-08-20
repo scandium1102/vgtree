@@ -8,7 +8,7 @@ This record captures the public, reproducible pre-release checks. It contains no
 
 | Check | Result |
 |---|---|
-| Python unit and policy suite | PASS — 103 tests |
+| Python unit and policy suite | PASS — 109 tests |
 | Python bytecode compilation | PASS |
 | Plugin manifest validator | PASS |
 | Six individual Skill validators | PASS |

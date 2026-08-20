@@ -19,5 +19,6 @@ Include the affected version, platform, minimal reproduction, impact, and any pr
 - Release builds install reviewed dependencies from a hash-locked file; the write-enabled publish job never checks out or executes repository source.
 - Skills can influence agent behavior. Review untrusted skill changes before installation.
 - VGTREE validates evidence structure and provenance fields, but domain tools remain responsible for the truth of their outputs.
+- Local state and Vault directories are same-user trust boundaries; protect them with private filesystem permissions.
 
 The pre-release security review and remediation record is published in [docs/security-review-v1.0.0.md](docs/security-review-v1.0.0.md).

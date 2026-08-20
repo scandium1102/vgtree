@@ -4,7 +4,7 @@ Review date: 2026-08-20
 
 ## Scope and result
 
-The full pre-release repository was reviewed across source code, schemas, Skills, Obsidian integration, tests, packaging, and GitHub workflows. The initial review found no critical or high-severity issue. It reported three medium- and three low-severity issues; all six were remediated before v1.0.0 publication.
+The full pre-release repository was reviewed across source code, schemas, Skills, Obsidian integration, tests, packaging, and GitHub workflows. The initial review found no critical or high-severity issue. It reported three medium- and three low-severity issues. An independent pre-release review then found one additional medium-severity branch-integrity issue. All seven were remediated before v1.0.0 publication.
 
 ## Remediations
 
@@ -16,10 +16,12 @@ The full pre-release repository was reviewed across source code, schemas, Skills
 | State read-modify-write and first-write paths could race | The store locks the full transaction and uses an atomic non-overwriting create path | Deterministic concurrency and racing-destination tests |
 | Obsidian audit could follow links or read outside the selected vault | Required inputs must resolve inside the vault, cannot be links, must be regular files, and are capped at 4 MiB | Link-containment and oversized-file tests |
 | Recursive DAG validation could exhaust the Python stack | DAG validation is iterative and branch/dependency counts are bounded | Maximum-depth and branch-bound tests |
+| Runtime branches were not bound back to the task plan, allowing deletion or demotion of required work | State validation now requires an exact one-to-one match for every immutable branch-spec field while permitting only runtime status, evidence, and limitation fields to change | Removal, demotion, dependency, completion-spec, default-branch, and completion-bypass tests |
 
 ## Residual boundaries
 
 - VGTREE validates control-plane state and evidence structure; it cannot prove that a caller's domain evidence is truthful.
+- The local state directory is a same-user trust boundary. Hostile concurrent pathname or lock-file replacement by another process with write access to that directory is outside v1.0.0's security model; use private directory permissions for state and Vault roots.
 - Optional live Obsidian validation requires an available and responsive local Obsidian CLI. Static audits remain available without it.
 - Installed Skills are executable agent instructions and should be reviewed like code before accepting third-party modifications.
 - No telemetry, hosted execution, MCP server, automatic mutation of existing vaults, or credential storage is included in v1.0.0.

@@ -62,6 +62,16 @@ PHASES = (
     "complete",
 )
 TERMINAL_BRANCH_STATUSES = {"VERIFIED", "ACCEPTED_LIMITATION"}
+BRANCH_SPEC_FIELDS = (
+    "id",
+    "title",
+    "kind",
+    "priority",
+    "depends_on",
+    "definition_of_done",
+    "evidence_requirements",
+    "stop_condition",
+)
 
 
 def _json_path(parts: Iterable[Any]) -> str:
@@ -122,8 +132,75 @@ def validate_state(state: Any) -> ValidationReport:
                     f"task_class must equal computed class {computed_class}.",
                 )
             )
+        issues.extend(_branch_spec_issues(task, branches))
     issues.extend(_phase_gate_issues(state, branches))
     return _report(_deduplicate(issues))
+
+
+def _expected_branch_specs(task: dict[str, Any]) -> list[dict[str, Any]]:
+    configured = task.get("branches")
+    if isinstance(configured, list) and configured:
+        return configured
+    return [
+        {
+            "id": "primary-outcome",
+            "title": task["title"],
+            "kind": "primary",
+            "priority": "P0",
+            "depends_on": [],
+        }
+    ]
+
+
+def _branch_spec_issues(
+    task: dict[str, Any], branches: list[Any]
+) -> list[ValidationIssue]:
+    """Bind mutable branch runtime state to the immutable embedded task plan."""
+
+    expected = _expected_branch_specs(task)
+    expected_by_id = {
+        branch["id"]: branch
+        for branch in expected
+        if isinstance(branch, dict) and isinstance(branch.get("id"), str)
+    }
+    actual_by_id = {
+        branch["id"]: (index, branch)
+        for index, branch in enumerate(branches)
+        if isinstance(branch, dict) and isinstance(branch.get("id"), str)
+    }
+    issues: list[ValidationIssue] = []
+
+    for branch_id in expected_by_id.keys() - actual_by_id.keys():
+        issues.append(
+            ValidationIssue(
+                "BRANCH_SPEC_MISSING",
+                "$.branches",
+                f"Required task branch is missing from state: {branch_id}",
+            )
+        )
+    for branch_id in actual_by_id.keys() - expected_by_id.keys():
+        index, _ = actual_by_id[branch_id]
+        issues.append(
+            ValidationIssue(
+                "BRANCH_SPEC_UNEXPECTED",
+                f"$.branches[{index}].id",
+                f"State contains a branch not declared by the task: {branch_id}",
+            )
+        )
+
+    for branch_id in expected_by_id.keys() & actual_by_id.keys():
+        expected_branch = expected_by_id[branch_id]
+        index, actual_branch = actual_by_id[branch_id]
+        for field in BRANCH_SPEC_FIELDS:
+            if actual_branch.get(field) != expected_branch.get(field):
+                issues.append(
+                    ValidationIssue(
+                        "BRANCH_SPEC_MISMATCH",
+                        f"$.branches[{index}].{field}",
+                        f"Branch {branch_id} field {field} must match the embedded task.",
+                    )
+                )
+    return issues
 
 
 def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:

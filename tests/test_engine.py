@@ -232,6 +232,33 @@ class EngineTransitionTests(unittest.TestCase):
         self.assertEqual(result.code, "COMPLETE")
         self.assertEqual(result.data["state"]["phase"], "complete")
 
+    def test_complete_rejects_tampered_branch_plan(self) -> None:
+        state = initialized_state()
+        at_phase(state, "verification")
+        state["branches"][0].update(
+            {
+                "kind": "secondary",
+                "status": "VERIFIED",
+                "evidence": [evidence("ev-build", "test")],
+            }
+        )
+        state["evidence"] = [
+            evidence("ev-integration", "integration"),
+            evidence("ev-final", "final-verification"),
+        ]
+
+        result = VGTREEEngine().complete(state)
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.code, "STATE_INVALID")
+        self.assertIn(
+            "BRANCH_SPEC_MISMATCH",
+            {
+                issue["code"]
+                for issue in result.data["validation"]["issues"]
+            },
+        )
+
     def test_complete_rejects_earlier_phase_even_with_evidence(self) -> None:
         state = initialized_state()
         at_phase(state, "mission_understanding")
