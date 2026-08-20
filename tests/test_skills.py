@@ -45,5 +45,18 @@ class PlanningTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("vgtree classify", body)
 
 
+class ExecutingTreeWorkSkillTests(unittest.TestCase):
+    def test_execution_skill_uses_guards_and_legal_mutations(self) -> None:
+        metadata, body = load_skill("executing-tree-work")
+
+        self.assertEqual(metadata["name"], "executing-tree-work")
+        self.assertIn("execute", metadata["description"].lower())
+        self.assertIn("vgtree guard", body)
+        self.assertIn("vgtree set-branch", body)
+        self.assertIn("vgtree record-evidence", body)
+        self.assertIn("rabbit hole", body.lower())
+        self.assertIn("BLOCKED", body)
+
+
 if __name__ == "__main__":
     unittest.main()

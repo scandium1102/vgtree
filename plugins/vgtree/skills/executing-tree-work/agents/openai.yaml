@@ -1,0 +1,4 @@
+interface:
+  display_name: "Executing Tree Work"
+  short_description: "Run VGTREE branches with guards and evidence"
+  default_prompt: "Use $executing-tree-work to execute the current VGTREE state safely."
