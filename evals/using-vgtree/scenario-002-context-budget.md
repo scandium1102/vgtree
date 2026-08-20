@@ -29,4 +29,3 @@ Record runtime_mode, engine_validation, version output, primary bundle, support 
 ## Context Budget
 
 Primary: using-vgtree. Support: the operation-specific Skill. Override only for named T4 mixed-domain audit. Unload condition: routing and runtime mode recorded.
-

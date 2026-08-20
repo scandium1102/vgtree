@@ -30,4 +30,3 @@ Record runtime_mode, engine_validation, source digest, compiler warnings, output
 ## Context Budget
 
 Primary: planning-tree-work. Support: using-vgtree. No override. Unload condition: Capability Map compiled.
-

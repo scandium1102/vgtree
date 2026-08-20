@@ -7,4 +7,3 @@ These fixtures test deterministic contracts for website, vision, research, ROS o
 A measured behavioral result must disclose the provider, model selector, reasoning setting, date, available tools, trial count, fixture digest, artifact references, and claim scope. Results apply only to the recorded environment; they are not universal token, quality, or productivity claims.
 
 The ROS observer fixture is read-only. It must never add `cmd-vel`, actuator commands, or control mutation.
-

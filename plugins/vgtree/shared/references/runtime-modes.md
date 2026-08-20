@@ -25,4 +25,3 @@ SKILL_ONLY is an honest fallback, not a second engine:
 - preserve exact missing checks and the command that an ENGINE run should execute later
 
 The shared resources are under `../../shared/` from each Skill directory.
-

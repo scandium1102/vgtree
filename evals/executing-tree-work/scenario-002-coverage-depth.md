@@ -29,4 +29,3 @@ Record branch baseline subject, exact method, digest or reference, coverage rati
 ## Context Budget
 
 Primary: executing-tree-work. Support: using-vgtree. No override. Unload condition: deep stage activated or named blocker.
-

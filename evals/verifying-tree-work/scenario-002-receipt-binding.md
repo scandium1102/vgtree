@@ -30,4 +30,3 @@ Record receipt ID, exact-byte digest, normalized reference, subject, method, out
 ## Context Budget
 
 Primary: verifying-tree-work. Support: using-vgtree. No override. Unload condition: compact evidence attached and receipt revalidated.
-

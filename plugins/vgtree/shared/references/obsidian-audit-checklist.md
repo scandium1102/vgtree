@@ -10,4 +10,3 @@ Use this checklist in SKILL_ONLY mode. Do not modify an existing vault.
 - If the Obsidian CLI or a live session is unavailable, record `OBSIDIAN_LIVE_UNAVAILABLE`.
 - Do not follow an audit finding with move, rename, rewrite, delete, scaffold-over-existing, or plugin installation.
 - Report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and overall `REVIEW_REQUIRED`.
-
