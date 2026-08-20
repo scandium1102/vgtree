@@ -1,9 +1,9 @@
 # VGTREE 1.1.0 Release Verification
 
-Date: 2026-08-21  
-Tested source commit: `aee3a52`  
-Local candidate status: **PASS**  
-Public release status: **PENDING EXPLICIT AUTHORIZATION**
+- Date: 2026-08-21
+- Tested source commit: `aee3a52`
+- Local candidate status: **PASS**
+- Public release status: **PENDING EXPLICIT AUTHORIZATION**
 
 This record describes checks that were actually run. It does not claim that
 GitHub Pages, GitHub Release, PyPI, or the OpenAI Plugins Directory already
@@ -97,4 +97,3 @@ The following are not yet performed and must remain separate authorized actions:
 4. Create and scan the Skills-only Plugin draft using the exact release bundle.
 5. Submit for review.
 6. Publish after approval.
-

@@ -1,7 +1,7 @@
 # VGTREE 1.1.0 Security Review
 
-Date: 2026-08-21  
-Result: **No reportable security findings**
+- Date: 2026-08-21
+- Result: **No reportable security findings**
 
 ## Scope
 
