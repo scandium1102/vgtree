@@ -132,11 +132,23 @@ class EngineTransitionTests(unittest.TestCase):
         state = initialized_state()
         state["phase"] = "verification"
         state["branches"][0]["status"] = "VERIFIED"
+        state["evidence"] = [evidence("ev-integration", "integration")]
 
         result = VGTREEEngine().complete(state)
 
         self.assertEqual(result.status, "REVIEW_REQUIRED")
         self.assertEqual(result.code, "FINAL_EVIDENCE_REQUIRED")
+
+    def test_complete_requires_prior_integration_evidence(self) -> None:
+        state = initialized_state()
+        state["phase"] = "verification"
+        state["branches"][0]["status"] = "VERIFIED"
+        state["evidence"] = [evidence("ev-final", "final-verification")]
+
+        result = VGTREEEngine().complete(state)
+
+        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.code, "INTEGRATION_EVIDENCE_REQUIRED")
 
     def test_complete_succeeds_only_from_verification(self) -> None:
         state = initialized_state()

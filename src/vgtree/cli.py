@@ -1,18 +1,200 @@
-"""VGTREE command-line entry point."""
+"""VGTREE command-line entry point with stable JSON results."""
 
 from __future__ import annotations
 
 import argparse
+import json
+import sys
+from pathlib import Path
+from typing import Any, Callable
+
+from vgtree.engine import VGTREEEngine
+from vgtree.migration import migrate_state_file
+from vgtree.models import GuardResult
+from vgtree.store import StateStore
+
+
+EXIT_CODES = {"PASS": 0, "FAIL": 1, "REVIEW_REQUIRED": 2, "BLOCKED": 3}
+
+
+class CLIUsageError(Exception):
+    pass
+
+
+class JSONArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> None:
+        raise CLIUsageError(message)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    return argparse.ArgumentParser(
+    parser = JSONArgumentParser(
         prog="vgtree",
-        description="VGTREE - verifiable tree workflows for AI agents and Obsidian.",
+        description=(
+            "VGTREE - local-first, no-telemetry tree workflows for AI agents "
+            "and Obsidian."
+        ),
     )
+    subparsers = parser.add_subparsers(dest="command", required=True)
+
+    classify = subparsers.add_parser("classify", help="Classify and route a task.")
+    classify.add_argument("--task", required=True, type=Path)
+
+    initialize = subparsers.add_parser("init", help="Create a new workflow state.")
+    initialize.add_argument("--task", required=True, type=Path)
+    initialize.add_argument("--state", required=True, type=Path)
+
+    next_command = subparsers.add_parser("next", help="Evaluate and advance one phase.")
+    next_command.add_argument("--state", required=True, type=Path)
+
+    guard = subparsers.add_parser("guard", help="Evaluate a branch activity.")
+    guard.add_argument("--state", required=True, type=Path)
+    guard.add_argument("--branch", required=True)
+    guard.add_argument("--activity", required=True)
+
+    validate = subparsers.add_parser("validate", help="Validate a workflow state.")
+    validate.add_argument("--state", required=True, type=Path)
+
+    complete = subparsers.add_parser("complete", help="Evaluate final completion gates.")
+    complete.add_argument("--state", required=True, type=Path)
+
+    migrate = subparsers.add_parser(
+        "migrate-state", help="Migrate schema 1.1 state to a new 2.0 file."
+    )
+    migrate.add_argument("--input", required=True, type=Path)
+    migrate.add_argument("--output", required=True, type=Path)
+    return parser
 
 
 def main(argv: list[str] | None = None) -> int:
-    build_parser().parse_args(argv)
-    return 0
+    try:
+        arguments = build_parser().parse_args(argv)
+        result = _dispatch(arguments)
+    except CLIUsageError as exc:
+        result = GuardResult("FAIL", "CLI_USAGE_ERROR", str(exc))
+    except Exception as exc:  # pragma: no cover - final safety envelope
+        result = GuardResult(
+            "FAIL",
+            "CLI_INTERNAL_ERROR",
+            f"Controlled internal error: {type(exc).__name__}: {exc}",
+        )
+    _emit(result)
+    return EXIT_CODES.get(result.status, 1)
 
+
+def _dispatch(arguments: argparse.Namespace) -> GuardResult:
+    commands: dict[str, Callable[[argparse.Namespace], GuardResult]] = {
+        "classify": _classify,
+        "init": _initialize,
+        "next": _next,
+        "guard": _guard,
+        "validate": _validate,
+        "complete": _complete,
+        "migrate-state": _migrate,
+    }
+    return commands[arguments.command](arguments)
+
+
+def _classify(arguments: argparse.Namespace) -> GuardResult:
+    loaded = _load_json(arguments.task, "TASK")
+    if isinstance(loaded, GuardResult):
+        return loaded
+    initialized = VGTREEEngine().initialize(loaded)
+    if initialized.status != "PASS":
+        return initialized
+    return GuardResult(
+        "PASS",
+        "CLASSIFIED",
+        "Task classification and route were computed.",
+        {"decision": initialized.data["decision"]},
+    )
+
+
+def _initialize(arguments: argparse.Namespace) -> GuardResult:
+    if arguments.state.exists():
+        return GuardResult(
+            "BLOCKED",
+            "STATE_OUTPUT_EXISTS",
+            "Initialization never overwrites an existing state file.",
+        )
+    loaded = _load_json(arguments.task, "TASK")
+    if isinstance(loaded, GuardResult):
+        return loaded
+    result = VGTREEEngine().initialize(loaded)
+    if result.status != "PASS":
+        return result
+    saved = StateStore().save(arguments.state, result.data["state"])
+    if saved.status != "PASS":
+        return saved
+    return GuardResult(
+        "PASS",
+        "INITIALIZED",
+        "Workflow state initialized and saved.",
+        result.data,
+    )
+
+
+def _next(arguments: argparse.Namespace) -> GuardResult:
+    return _mutate_state(arguments.state, VGTREEEngine().next)
+
+
+def _guard(arguments: argparse.Namespace) -> GuardResult:
+    loaded = StateStore().load(arguments.state)
+    if loaded.status != "PASS":
+        return loaded
+    return VGTREEEngine().guard(
+        loaded.data["state"], arguments.branch, arguments.activity
+    )
+
+
+def _validate(arguments: argparse.Namespace) -> GuardResult:
+    loaded = StateStore().load(arguments.state)
+    if loaded.status != "PASS":
+        return loaded
+    report = VGTREEEngine().validate(loaded.data["state"])
+    return GuardResult(
+        "PASS" if report.valid else "FAIL",
+        "STATE_VALID" if report.valid else "STATE_INVALID",
+        "Workflow state passed validation." if report.valid else "Validation failed.",
+        {"validation": report.as_dict()},
+    )
+
+
+def _complete(arguments: argparse.Namespace) -> GuardResult:
+    return _mutate_state(arguments.state, VGTREEEngine().complete)
+
+
+def _migrate(arguments: argparse.Namespace) -> GuardResult:
+    return migrate_state_file(arguments.input, arguments.output)
+
+
+def _mutate_state(
+    state_path: Path, operation: Callable[[dict[str, Any]], GuardResult]
+) -> GuardResult:
+    loaded = StateStore().load(state_path)
+    if loaded.status != "PASS":
+        return loaded
+    result = operation(loaded.data["state"])
+    if result.status != "PASS" or "state" not in result.data:
+        return result
+    saved = StateStore().save(state_path, result.data["state"])
+    return result if saved.status == "PASS" else saved
+
+
+def _load_json(path: Path, prefix: str) -> Any | GuardResult:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return GuardResult("FAIL", f"{prefix}_NOT_FOUND", f"File not found: {path}")
+    except (OSError, UnicodeError) as exc:
+        return GuardResult("FAIL", f"{prefix}_READ_FAILED", str(exc))
+    except json.JSONDecodeError as exc:
+        return GuardResult(
+            "FAIL",
+            f"{prefix}_JSON_INVALID",
+            f"Invalid JSON at line {exc.lineno}, column {exc.colno}.",
+        )
+
+
+def _emit(result: GuardResult) -> None:
+    json.dump(result.as_dict(), sys.stdout, ensure_ascii=False, sort_keys=True)
+    sys.stdout.write("\n")

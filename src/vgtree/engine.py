@@ -199,6 +199,12 @@ class VGTREEEngine:
         branch_gate = self._branch_gate(state)
         if branch_gate:
             return branch_gate
+        if not _has_passing_evidence(state, "integration"):
+            return GuardResult(
+                "REVIEW_REQUIRED",
+                "INTEGRATION_EVIDENCE_REQUIRED",
+                "Passing integration evidence is required before completion.",
+            )
         if not _has_passing_evidence(state, "final-verification"):
             return GuardResult(
                 "REVIEW_REQUIRED",
