@@ -13,8 +13,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "VGTREE",
-    "shortDescription": "Branch complex work into verifiable outcomes",
-    "longDescription": "Map complex work into evidence-backed branches, cover the wide pass, deepen safely, and prove outcomes with inspectable receipts and optional deterministic CLI enforcement.",
+    "shortDescription": "Branch complex work into verifiable outcomes.",
+    "longDescription": "VGTREE maps complex work into evidence-backed branches before the agent goes deep. It helps ChatGPT and Codex plan, execute, and verify multi-step outcomes with coverage gates, inspectable receipts, honest fallbacks, and optional deterministic CLI enforcement. It also includes UID-first knowledge architecture and local-first Obsidian workspace workflows. No VGTREE account, hosted service, or telemetry is required.",
     "developerName": "VGTREE Contributors",
     "category": "Productivity",
     "capabilities": ["Planning", "Verification", "Obsidian"],
@@ -22,9 +22,11 @@
     "privacyPolicyURL": "https://scandium1102.github.io/vgtree/privacy/",
     "termsOfServiceURL": "https://scandium1102.github.io/vgtree/terms/",
     "defaultPrompt": [
-      "Turn this complex request into a verified VGTREE plan.",
-      "Execute this VGTREE state without opening rabbit holes.",
-      "Audit this Obsidian workspace in Core mode."
+      "Map this complex outcome into a VGTREE Capability Map with required branches, dependencies, shared interfaces, risk owners, minimum viable states, and final acceptance before implementation begins.",
+      "Run a VGTREE wide pass for this multi-step project, record baseline coverage for every required branch, and show what still blocks safe deep execution.",
+      "Review these VGTREE Tool Receipts and workflow state, distinguish baseline from completion evidence, and report which branch, integration, and final-verification gates are actually satisfied.",
+      "Audit this Obsidian workspace in VGTREE Core mode without changing any notes, then report missing canonical surfaces and a reversible improvement plan.",
+      "Design a UID-first VGTREE knowledge architecture for this second-brain project, including canonical ownership, registries, provenance, lineage, readback, and rollback boundaries."
     ],
     "brandColor": "#6D5DFB",
     "composerIcon": "./assets/icon.svg",

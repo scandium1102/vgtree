@@ -1,0 +1,52 @@
+{
+  "submission_version": "1.0",
+  "product_version": "1.1.0",
+  "submission_type": "skills-only",
+  "name": "VGTREE",
+  "category": "Productivity",
+  "short_description": "Branch complex work into verifiable outcomes.",
+  "long_description": "VGTREE maps complex work into evidence-backed branches before the agent goes deep. It helps ChatGPT and Codex plan, execute, and verify multi-step outcomes with coverage gates, inspectable receipts, honest fallbacks, and optional deterministic CLI enforcement. It also includes UID-first knowledge architecture and local-first Obsidian workspace workflows. No VGTREE account, hosted service, or telemetry is required.",
+  "website": "https://scandium1102.github.io/vgtree/",
+  "support": "https://github.com/scandium1102/vgtree/issues",
+  "privacy": "https://scandium1102.github.io/vgtree/privacy/",
+  "terms": "https://scandium1102.github.io/vgtree/terms/",
+  "developer_identity": {
+    "mode": "individual",
+    "status": "PENDING_USER_VERIFICATION",
+    "owner_action": "The release owner completes verification personally and selects the matching verified identity in the Portal. The agent does not handle identity documents."
+  },
+  "availability": "ALL_PORTAL_AVAILABLE",
+  "has_mcp": false,
+  "has_ui": false,
+  "requires_account": false,
+  "has_telemetry": false,
+  "screenshots": [],
+  "bundle": {
+    "filename": "vgtree-plugin-1.1.0.zip",
+    "digest_source": "SHA256SUMS",
+    "upload_rule": "Upload the exact verified archive whose digest appears in the release checksum file."
+  },
+  "starter_prompts": [
+    {
+      "id": "capability-map",
+      "prompt": "Map this complex outcome into a VGTREE Capability Map with required branches, dependencies, shared interfaces, risk owners, minimum viable states, and final acceptance before implementation begins."
+    },
+    {
+      "id": "wide-pass-execution",
+      "prompt": "Run a VGTREE wide pass for this multi-step project, record baseline coverage for every required branch, and show what still blocks safe deep execution."
+    },
+    {
+      "id": "receipt-verification",
+      "prompt": "Review these VGTREE Tool Receipts and workflow state, distinguish baseline from completion evidence, and report which branch, integration, and final-verification gates are actually satisfied."
+    },
+    {
+      "id": "obsidian-read-only-audit",
+      "prompt": "Audit this Obsidian workspace in VGTREE Core mode without changing any notes, then report missing canonical surfaces and a reversible improvement plan."
+    },
+    {
+      "id": "uid-first-knowledge-architecture",
+      "prompt": "Design a UID-first VGTREE knowledge architecture for this second-brain project, including canonical ownership, registries, provenance, lineage, readback, and rollback boundaries."
+    }
+  ],
+  "release_notes": "Initial public Skills-only submission of VGTREE 1.1. Includes six focused Skills, ENGINE and SKILL_ONLY runtime modes, Capability Maps, Coverage Gates, Tool Receipts, Context Budget controls, UID-first knowledge architecture, and local-first Obsidian workflows. No authentication, MCP server, Plugin UI, hosted data, or telemetry is included."
+}
