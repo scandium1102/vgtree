@@ -206,5 +206,62 @@ class GuardTests(unittest.TestCase):
         self.assertEqual(result.code, "STATE_INVALID")
 
 
+class BranchMutationTests(unittest.TestCase):
+    def test_record_evidence_then_verify_branch(self) -> None:
+        state = initialized_state()
+        engine = VGTREEEngine()
+        started = engine.set_branch(state, "build", "IN_PROGRESS")
+        state = started.data["state"]
+        recorded = engine.record_evidence(
+            state, evidence("ev-build", "test"), branch_id="build"
+        )
+        state = recorded.data["state"]
+
+        verified = engine.set_branch(state, "build", "VERIFIED")
+
+        self.assertEqual(verified.status, "PASS", verified)
+        self.assertEqual(verified.data["state"]["branches"][0]["status"], "VERIFIED")
+
+    def test_verify_branch_without_passing_evidence_is_rejected(self) -> None:
+        state = initialized_state()
+        state["branches"][0]["status"] = "IN_PROGRESS"
+
+        result = VGTREEEngine().set_branch(state, "build", "VERIFIED")
+
+        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.code, "BRANCH_EVIDENCE_REQUIRED")
+
+    def test_duplicate_evidence_id_is_rejected(self) -> None:
+        state = initialized_state()
+        first = VGTREEEngine().record_evidence(state, evidence("ev-1", "test"))
+
+        second = VGTREEEngine().record_evidence(
+            first.data["state"], evidence("ev-1", "test")
+        )
+
+        self.assertEqual(second.status, "FAIL")
+        self.assertEqual(second.code, "EVIDENCE_ID_DUPLICATE")
+
+    def test_blocked_status_requires_reason_and_evidence(self) -> None:
+        state = initialized_state()
+
+        result = VGTREEEngine().set_branch(
+            state, "build", "BLOCKED", blocked_reason="Permission missing"
+        )
+
+        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.code, "BRANCH_EVIDENCE_REQUIRED")
+
+    def test_illegal_terminal_transition_is_rejected(self) -> None:
+        state = initialized_state()
+        state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
+
+        result = VGTREEEngine().set_branch(state, "build", "IN_PROGRESS")
+
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.code, "BRANCH_TRANSITION_ILLEGAL")
+
+
 if __name__ == "__main__":
     unittest.main()

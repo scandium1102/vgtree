@@ -138,6 +138,49 @@ class CoreCliTests(unittest.TestCase):
                 self.assertEqual(payload["status"], "FAIL")
                 self.assertNotIn("Traceback", completed.stderr + completed.stdout)
 
+    def test_record_evidence_and_set_branch_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            evidence_path = Path(directory) / "evidence.json"
+            state_path.write_text(json.dumps(initialized_state()), encoding="utf-8")
+            evidence_path.write_text(
+                json.dumps(evidence("ev-build", "test")), encoding="utf-8"
+            )
+
+            started = run_cli(
+                "set-branch",
+                "--state",
+                str(state_path),
+                "--branch",
+                "build",
+                "--status",
+                "IN_PROGRESS",
+            )
+            recorded = run_cli(
+                "record-evidence",
+                "--state",
+                str(state_path),
+                "--branch",
+                "build",
+                "--evidence",
+                str(evidence_path),
+            )
+            verified = run_cli(
+                "set-branch",
+                "--state",
+                str(state_path),
+                "--branch",
+                "build",
+                "--status",
+                "VERIFIED",
+            )
+
+            self.assertEqual(started.returncode, 0, started.stderr)
+            self.assertEqual(recorded.returncode, 0, recorded.stderr)
+            self.assertEqual(verified.returncode, 0, verified.stderr)
+            state = json.loads(state_path.read_text(encoding="utf-8"))
+            self.assertEqual(state["branches"][0]["status"], "VERIFIED")
+
 
 class ObsidianCliTests(unittest.TestCase):
     def test_scaffold_and_audit_commands(self) -> None:

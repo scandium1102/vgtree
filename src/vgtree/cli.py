@@ -58,6 +58,26 @@ def build_parser() -> argparse.ArgumentParser:
     complete = subparsers.add_parser("complete", help="Evaluate final completion gates.")
     complete.add_argument("--state", required=True, type=Path)
 
+    record = subparsers.add_parser(
+        "record-evidence", help="Attach a typed evidence record."
+    )
+    record.add_argument("--state", required=True, type=Path)
+    record.add_argument("--evidence", required=True, type=Path)
+    record.add_argument("--branch")
+
+    set_branch = subparsers.add_parser(
+        "set-branch", help="Apply a legal evidence-gated branch transition."
+    )
+    set_branch.add_argument("--state", required=True, type=Path)
+    set_branch.add_argument("--branch", required=True)
+    set_branch.add_argument(
+        "--status",
+        required=True,
+        choices=("PENDING", "IN_PROGRESS", "VERIFIED", "BLOCKED", "ACCEPTED_LIMITATION"),
+    )
+    set_branch.add_argument("--blocked-reason")
+    set_branch.add_argument("--limitation", type=Path)
+
     migrate = subparsers.add_parser(
         "migrate-state", help="Migrate schema 1.1 state to a new 2.0 file."
     )
@@ -108,6 +128,8 @@ def _dispatch(arguments: argparse.Namespace) -> GuardResult:
         "guard": _guard,
         "validate": _validate,
         "complete": _complete,
+        "record-evidence": _record_evidence,
+        "set-branch": _set_branch,
         "migrate-state": _migrate,
         "obsidian": _obsidian,
     }
@@ -181,6 +203,36 @@ def _validate(arguments: argparse.Namespace) -> GuardResult:
 
 def _complete(arguments: argparse.Namespace) -> GuardResult:
     return _mutate_state(arguments.state, VGTREEEngine().complete)
+
+
+def _record_evidence(arguments: argparse.Namespace) -> GuardResult:
+    evidence = _load_json(arguments.evidence, "EVIDENCE")
+    if isinstance(evidence, GuardResult):
+        return evidence
+    return _mutate_state(
+        arguments.state,
+        lambda state: VGTREEEngine().record_evidence(
+            state, evidence, branch_id=arguments.branch
+        ),
+    )
+
+
+def _set_branch(arguments: argparse.Namespace) -> GuardResult:
+    limitation = None
+    if arguments.limitation is not None:
+        limitation = _load_json(arguments.limitation, "LIMITATION")
+        if isinstance(limitation, GuardResult):
+            return limitation
+    return _mutate_state(
+        arguments.state,
+        lambda state: VGTREEEngine().set_branch(
+            state,
+            arguments.branch,
+            arguments.status,
+            blocked_reason=arguments.blocked_reason,
+            limitation=limitation,
+        ),
+    )
 
 
 def _migrate(arguments: argparse.Namespace) -> GuardResult:

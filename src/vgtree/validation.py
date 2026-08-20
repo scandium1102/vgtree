@@ -20,6 +20,13 @@ TASK_SCHEMA = _load_schema("task.schema.json")
 STATE_SCHEMA = _load_schema("state.schema.json")
 TASK_VALIDATOR = Draft202012Validator(TASK_SCHEMA)
 STATE_VALIDATOR = Draft202012Validator(STATE_SCHEMA)
+EVIDENCE_VALIDATOR = Draft202012Validator(
+    {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$ref": "#/$defs/evidence",
+        "$defs": STATE_SCHEMA["$defs"],
+    }
+)
 
 
 def _json_path(parts: Iterable[Any]) -> str:
@@ -46,6 +53,10 @@ def _report(issues: list[ValidationIssue]) -> ValidationReport:
 
 def validate_task(task: Any) -> ValidationReport:
     return _report(_schema_issues(TASK_VALIDATOR, task))
+
+
+def validate_evidence(evidence: Any) -> ValidationReport:
+    return _report(_schema_issues(EVIDENCE_VALIDATOR, evidence))
 
 
 def validate_state(state: Any) -> ValidationReport:
@@ -204,4 +215,3 @@ def _deduplicate(issues: list[ValidationIssue]) -> list[ValidationIssue]:
             output.append(issue)
             seen.add(key)
     return output
-

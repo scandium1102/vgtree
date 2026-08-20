@@ -10,7 +10,7 @@ from typing import Any
 from vgtree import __version__
 from vgtree.models import Decision, GuardResult, ValidationReport
 from vgtree.routing import TREE_WORKFLOW_REF, classify_task
-from vgtree.validation import validate_state, validate_task
+from vgtree.validation import validate_evidence, validate_state, validate_task
 
 
 PHASES = (
@@ -23,6 +23,13 @@ PHASES = (
     "complete",
 )
 TERMINAL_BRANCH_STATUSES = {"VERIFIED", "ACCEPTED_LIMITATION"}
+BRANCH_TRANSITIONS = {
+    "PENDING": {"IN_PROGRESS", "BLOCKED"},
+    "IN_PROGRESS": {"VERIFIED", "BLOCKED", "ACCEPTED_LIMITATION"},
+    "BLOCKED": {"IN_PROGRESS", "ACCEPTED_LIMITATION"},
+    "VERIFIED": set(),
+    "ACCEPTED_LIMITATION": set(),
+}
 
 
 class VGTREEEngine:
@@ -96,6 +103,143 @@ class VGTREEEngine:
 
     def validate(self, state: Any) -> ValidationReport:
         return validate_state(state)
+
+    def record_evidence(
+        self,
+        state: dict[str, Any],
+        evidence: dict[str, Any],
+        *,
+        branch_id: str | None = None,
+    ) -> GuardResult:
+        invalid = self._invalid_state_result(state)
+        if invalid:
+            return invalid
+        evidence_report = validate_evidence(evidence)
+        if not evidence_report.valid:
+            return GuardResult(
+                "FAIL",
+                "EVIDENCE_INVALID",
+                "Evidence record failed validation.",
+                {"validation": evidence_report.as_dict()},
+            )
+        evidence_ids = {
+            item["id"]
+            for item in state["evidence"]
+            if isinstance(item, dict) and "id" in item
+        }
+        for branch in state["branches"]:
+            evidence_ids.update(
+                item["id"]
+                for item in branch["evidence"]
+                if isinstance(item, dict) and "id" in item
+            )
+        if evidence["id"] in evidence_ids:
+            return GuardResult(
+                "FAIL",
+                "EVIDENCE_ID_DUPLICATE",
+                f"Evidence id already exists: {evidence['id']}",
+            )
+
+        updated = copy.deepcopy(state)
+        if branch_id is None:
+            updated["evidence"].append(copy.deepcopy(evidence))
+        else:
+            branch = _find_branch(updated, branch_id)
+            if branch is None:
+                return GuardResult(
+                    "FAIL", "BRANCH_NOT_FOUND", f"Unknown branch: {branch_id}"
+                )
+            branch["evidence"].append(copy.deepcopy(evidence))
+        return GuardResult(
+            "PASS",
+            "EVIDENCE_RECORDED",
+            "Evidence record attached to workflow state.",
+            {"state": updated, "evidence_id": evidence["id"], "branch_id": branch_id},
+        )
+
+    def set_branch(
+        self,
+        state: dict[str, Any],
+        branch_id: str,
+        status: str,
+        *,
+        blocked_reason: str | None = None,
+        limitation: dict[str, Any] | None = None,
+    ) -> GuardResult:
+        invalid = self._invalid_state_result(state)
+        if invalid:
+            return invalid
+        if status not in BRANCH_TRANSITIONS:
+            return GuardResult(
+                "FAIL", "BRANCH_STATUS_INVALID", f"Unsupported branch status: {status}"
+            )
+        current_branch = _find_branch(state, branch_id)
+        if current_branch is None:
+            return GuardResult("FAIL", "BRANCH_NOT_FOUND", f"Unknown branch: {branch_id}")
+        current_status = current_branch["status"]
+        if status == current_status:
+            return GuardResult(
+                "PASS", "BRANCH_UNCHANGED", "Branch already has the requested status.", {"state": state}
+            )
+        if status not in BRANCH_TRANSITIONS[current_status]:
+            return GuardResult(
+                "FAIL",
+                "BRANCH_TRANSITION_ILLEGAL",
+                f"Cannot change branch from {current_status} to {status}.",
+            )
+        if status in {"VERIFIED", "BLOCKED", "ACCEPTED_LIMITATION"}:
+            evidence_records = current_branch["evidence"]
+            if not evidence_records:
+                return GuardResult(
+                    "REVIEW_REQUIRED",
+                    "BRANCH_EVIDENCE_REQUIRED",
+                    "Terminal and blocked branch states require evidence.",
+                )
+            if status == "VERIFIED" and not any(
+                item.get("outcome") == "PASS" for item in evidence_records
+            ):
+                return GuardResult(
+                    "REVIEW_REQUIRED",
+                    "BRANCH_PASS_EVIDENCE_REQUIRED",
+                    "Verified status requires at least one passing evidence record.",
+                )
+        if status == "BLOCKED" and not blocked_reason:
+            return GuardResult(
+                "REVIEW_REQUIRED",
+                "BLOCKED_REASON_REQUIRED",
+                "Blocked status requires a reason.",
+            )
+        if status == "ACCEPTED_LIMITATION" and not limitation:
+            return GuardResult(
+                "REVIEW_REQUIRED",
+                "LIMITATION_RECORD_REQUIRED",
+                "Accepted limitation status requires a structured limitation record.",
+            )
+
+        updated = copy.deepcopy(state)
+        branch = _find_branch(updated, branch_id)
+        assert branch is not None
+        branch["status"] = status
+        branch.pop("blocked_reason", None)
+        branch.pop("limitation", None)
+        if status == "BLOCKED":
+            branch["blocked_reason"] = blocked_reason
+        if status == "ACCEPTED_LIMITATION":
+            branch["limitation"] = copy.deepcopy(limitation)
+        report = validate_state(updated)
+        if not report.valid:
+            return GuardResult(
+                "FAIL",
+                "STATE_INVALID",
+                "Branch update would create invalid state.",
+                {"validation": report.as_dict()},
+            )
+        return GuardResult(
+            "PASS",
+            "BRANCH_UPDATED",
+            f"Branch {branch_id} changed from {current_status} to {status}.",
+            {"state": updated, "branch_id": branch_id, "status": status},
+        )
 
     def next(self, state: dict[str, Any]) -> GuardResult:
         invalid = self._invalid_state_result(state)
@@ -289,6 +433,13 @@ def _has_passing_evidence(state: dict[str, Any], evidence_type: str) -> bool:
         item.get("type") == evidence_type and item.get("outcome") == "PASS"
         for item in state.get("evidence", [])
         if isinstance(item, dict)
+    )
+
+
+def _find_branch(state: dict[str, Any], branch_id: str) -> dict[str, Any] | None:
+    return next(
+        (branch for branch in state.get("branches", []) if branch.get("id") == branch_id),
+        None,
     )
 
 
