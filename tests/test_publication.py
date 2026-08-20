@@ -30,6 +30,8 @@ class PublicDocumentationTests(unittest.TestCase):
             "docs/obsidian.md",
             "docs/migration.md",
             "docs/plugin.md",
+            "docs/release-verification-v1.1.0.md",
+            "docs/security-review-v1.1.0.md",
             "examples/task.json",
             "examples/evidence.json",
             "examples/workflow-registry.json",
