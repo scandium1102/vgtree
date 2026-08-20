@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import unittest
 from pathlib import Path
 
@@ -24,6 +25,39 @@ class ContinuousIntegrationTests(unittest.TestCase):
         self.assertIn("python -m unittest discover -s tests -v", text)
         self.assertIn("gh release create", text)
         self.assertIn("dist/*", text)
+
+    def test_all_github_actions_are_pinned_to_full_commit_sha(self) -> None:
+        for path in (ROOT / ".github" / "workflows").glob("*.yml"):
+            text = path.read_text(encoding="utf-8")
+            uses = re.findall(r"uses:\s*([^\s#]+)", text)
+            with self.subTest(path=path.name):
+                self.assertGreater(len(uses), 0)
+                for reference in uses:
+                    self.assertRegex(reference, r"^[^@]+@[0-9a-f]{40}$")
+
+    def test_release_separates_read_only_build_from_write_publish(self) -> None:
+        text = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("contents: read", text)
+        self.assertIn("persist-credentials: false", text)
+        self.assertIn("--require-hashes -r requirements/release.txt", text)
+        self.assertIn("--no-build-isolation --no-deps -e .", text)
+        self.assertIn("needs: build", text)
+        self.assertIn("contents: write", text)
+        release_block = text.split("\n  release:\n", 1)[1]
+        self.assertNotIn("actions/checkout", release_block)
+        self.assertNotIn("pip install", release_block)
+        self.assertIn("sha256sum -c SHA256SUMS", release_block)
+
+    def test_release_dependency_lock_is_hash_pinned(self) -> None:
+        lock = (ROOT / "requirements" / "release.txt").read_text(encoding="utf-8")
+
+        self.assertIn("--hash=sha256:", lock)
+        self.assertIn("build==", lock)
+        self.assertIn("setuptools==", lock)
+        self.assertIn("wheel==", lock)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,7 @@
+# Reviewed release-build inputs. Regenerate release.txt with pip-tools and hashes.
+pip==26.2.1
+build==1.5.0
+setuptools==84.0.0
+wheel==0.48.0
+jsonschema==4.26.0
+PyYAML==6.0.3
