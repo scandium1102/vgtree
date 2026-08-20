@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vgtree.dev/schemas/task.schema.json",
+  "title": "VGTREE Task Specification",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["task_id", "title", "signals"],
+  "properties": {
+    "task_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "title": { "type": "string", "minLength": 1, "maxLength": 500 },
+    "description": { "type": "string", "maxLength": 10000 },
+    "explicit_class": { "enum": ["T0", "T1", "T2", "T3", "T4"] },
+    "signals": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "estimated_files",
+        "migration",
+        "project_scale",
+        "external_effect",
+        "destructive",
+        "cross_system",
+        "irreversible"
+      ],
+      "properties": {
+        "estimated_files": { "type": "integer", "minimum": 0 },
+        "migration": { "type": "boolean" },
+        "project_scale": { "type": "boolean" },
+        "external_effect": { "type": "boolean" },
+        "destructive": { "type": "boolean" },
+        "cross_system": { "type": "boolean" },
+        "irreversible": { "type": "boolean" }
+      }
+    },
+    "specialized_match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow_ref",
+        "registered",
+        "trigger_match",
+        "context_match",
+        "capability_match",
+        "outcome_match",
+        "safety_match"
+      ],
+      "properties": {
+        "workflow_ref": { "type": "string", "minLength": 1 },
+        "registered": { "type": "boolean" },
+        "trigger_match": { "type": "boolean" },
+        "context_match": { "type": "boolean" },
+        "capability_match": { "type": "boolean" },
+        "outcome_match": { "type": "boolean" },
+        "safety_match": { "type": "boolean" }
+      }
+    },
+    "branches": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "title", "kind", "priority", "depends_on"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "title": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["primary", "secondary"] },
+          "priority": { "enum": ["P0", "P1", "P2", "DEFERRED"] },
+          "depends_on": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 },
+            "uniqueItems": true
+          }
+        }
+      }
+    }
+  }
+}
