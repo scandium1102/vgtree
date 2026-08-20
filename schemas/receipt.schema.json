@@ -1,0 +1,98 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vgtree.dev/schemas/receipt.schema.json",
+  "title": "VGTREE Tool Receipt 1.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "receipt_version",
+    "receipt_id",
+    "task_id",
+    "tool",
+    "subject",
+    "evidence_type",
+    "evidence_method",
+    "status",
+    "artifacts",
+    "validations",
+    "started_at",
+    "ended_at"
+  ],
+  "properties": {
+    "receipt_version": { "const": "1.0" },
+    "receipt_id": { "$ref": "#/$defs/id" },
+    "task_id": { "$ref": "#/$defs/id" },
+    "branch_id": { "$ref": "#/$defs/id" },
+    "tool": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "invocation_kind"],
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "version": { "type": "string", "minLength": 1, "maxLength": 500 },
+        "invocation_kind": { "enum": ["CLI", "API", "MCP", "GUI", "OTHER"] }
+      }
+    },
+    "subject": { "$ref": "#/$defs/text" },
+    "evidence_type": { "$ref": "#/$defs/text" },
+    "evidence_method": { "$ref": "#/$defs/text" },
+    "status": { "$ref": "#/$defs/outcome" },
+    "artifacts": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/artifact" }
+    },
+    "validations": {
+      "type": "array",
+      "maxItems": 1000,
+      "items": { "$ref": "#/$defs/validation" }
+    },
+    "started_at": { "type": "string", "format": "date-time" },
+    "ended_at": { "type": "string", "format": "date-time" },
+    "notes": { "type": "string", "maxLength": 10000 },
+    "input_digest": { "$ref": "#/$defs/digest" }
+  },
+  "$defs": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 10000
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "outcome": {
+      "enum": ["PASS", "FAIL", "REVIEW_REQUIRED", "BLOCKED"]
+    },
+    "artifact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["subject"],
+      "properties": {
+        "subject": { "$ref": "#/$defs/text" },
+        "reference": { "$ref": "#/$defs/text" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "method", "outcome"],
+      "properties": {
+        "name": { "$ref": "#/$defs/text" },
+        "method": { "$ref": "#/$defs/text" },
+        "outcome": { "$ref": "#/$defs/outcome" },
+        "reference": { "$ref": "#/$defs/text" },
+        "digest": { "$ref": "#/$defs/digest" }
+      }
+    }
+  }
+}
+

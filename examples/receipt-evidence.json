@@ -1,0 +1,11 @@
+{
+  "digest": "sha256:82e9492b7bf60e2adf8eb553b30e0e174dfb348b0fa896abf554279e813351d1",
+  "id": "receipt-build-001",
+  "method": "full test suite",
+  "outcome": "PASS",
+  "reference": "examples/receipt.json",
+  "subject": "integrated source at commit abc1234",
+  "timestamp": "2026-08-20T10:02:00Z",
+  "type": "branch-validation"
+}
+

@@ -17,6 +17,7 @@ from vgtree.engine import VGTREEEngine
 from vgtree.migration import migrate_state_file
 from vgtree.models import GuardResult
 from vgtree.obsidian import ObsidianWorkspace
+from vgtree.receipts import load_receipt, receipt_to_evidence
 from vgtree.store import StateStore
 from vgtree.validation import validate_task
 
@@ -114,6 +115,20 @@ def build_parser() -> argparse.ArgumentParser:
     map_compile.add_argument("--map", required=True, dest="map_path", type=Path)
     map_compile.add_argument("--output", required=True, type=Path)
 
+    receipt = subparsers.add_parser("receipt", help="Tool Receipt utilities.")
+    receipt_commands = receipt.add_subparsers(dest="receipt_command", required=True)
+    receipt_validate = receipt_commands.add_parser(
+        "validate", help="Validate one contained receipt."
+    )
+    receipt_validate.add_argument("--root", required=True, type=Path)
+    receipt_validate.add_argument("--receipt", required=True, type=Path)
+    receipt_evidence = receipt_commands.add_parser(
+        "evidence", help="Create compact evidence from exact receipt bytes."
+    )
+    receipt_evidence.add_argument("--root", required=True, type=Path)
+    receipt_evidence.add_argument("--receipt", required=True, type=Path)
+    receipt_evidence.add_argument("--output", required=True, type=Path)
+
     obsidian = subparsers.add_parser("obsidian", help="Obsidian workspace tools.")
     obsidian_commands = obsidian.add_subparsers(
         dest="obsidian_command", required=True
@@ -164,6 +179,7 @@ def _dispatch(arguments: argparse.Namespace) -> GuardResult:
         "set-branch": _set_branch,
         "migrate-state": _migrate,
         "map": _map,
+        "receipt": _receipt,
         "obsidian": _obsidian,
     }
     return commands[arguments.command](arguments)
@@ -344,6 +360,52 @@ def _map(arguments: argparse.Namespace) -> GuardResult:
         "CAPABILITY_MAP_COMPILED",
         "Capability Map compiled to a new task file.",
         {**result.data, "digest": digest, "output": str(arguments.output)},
+    )
+
+
+def _receipt(arguments: argparse.Namespace) -> GuardResult:
+    if arguments.receipt_command == "evidence" and arguments.output.exists():
+        return GuardResult(
+            "BLOCKED",
+            "RECEIPT_EVIDENCE_OUTPUT_EXISTS",
+            "Receipt evidence generation never overwrites an existing file.",
+        )
+    loaded = load_receipt(arguments.root, arguments.receipt)
+    if isinstance(loaded, GuardResult):
+        return loaded
+    value, digest, reference = loaded
+    if arguments.receipt_command == "validate":
+        return GuardResult(
+            "PASS",
+            "RECEIPT_VALID",
+            "Receipt passed structural validation.",
+            {
+                "receipt_id": value["receipt_id"],
+                "digest": digest,
+                "reference": reference,
+            },
+        )
+    if arguments.receipt_command != "evidence":
+        return GuardResult("FAIL", "CLI_USAGE_ERROR", "Unknown receipt command.")
+    converted = receipt_to_evidence(value, reference, digest)
+    if converted.status != "PASS":
+        return converted
+    saved = _write_json_create_only(
+        arguments.output,
+        converted.data["evidence"],
+        exists_code="RECEIPT_EVIDENCE_OUTPUT_EXISTS",
+        failure_code="RECEIPT_EVIDENCE_WRITE_FAILED",
+    )
+    if saved is not None:
+        return saved
+    return GuardResult(
+        "PASS",
+        "RECEIPT_EVIDENCE_SAVED",
+        "Compact evidence was created from exact receipt bytes.",
+        {
+            "evidence": converted.data["evidence"],
+            "output": str(arguments.output),
+        },
     )
 
 

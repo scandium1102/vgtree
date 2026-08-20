@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import unittest
 from pathlib import Path
 
 from vgtree.capability import validate_capability_map
+from vgtree.receipts import validate_receipt
 from vgtree.validation import validate_evidence, validate_state
 
 
@@ -34,6 +36,8 @@ class PublicDocumentationTests(unittest.TestCase):
             "examples/capability-map.json",
             "examples/baseline-evidence.json",
             "examples/state-2.1.json",
+            "examples/receipt.json",
+            "examples/receipt-evidence.json",
         )
         for relative in required:
             with self.subTest(relative=relative):
@@ -58,6 +62,7 @@ class PublicDocumentationTests(unittest.TestCase):
             "task.schema.json",
             "state.schema.json",
             "capability-map.schema.json",
+            "receipt.schema.json",
         ):
             root_schema = (ROOT / "schemas" / name).read_bytes()
             package_schema = (ROOT / "src" / "vgtree" / "schemas" / name).read_bytes()
@@ -79,6 +84,17 @@ class PublicDocumentationTests(unittest.TestCase):
         self.assertTrue(validate_evidence(baseline).valid)
         self.assertTrue(validate_state(state).valid)
         self.assertEqual(state["coverage"]["execution_stage"], "WIDE")
+
+    def test_receipt_examples_are_digest_bound(self) -> None:
+        receipt_path = ROOT / "examples" / "receipt.json"
+        raw = receipt_path.read_bytes()
+        receipt = json.loads(raw.decode("utf-8"))
+        evidence = json.loads(
+            (ROOT / "examples" / "receipt-evidence.json").read_text(encoding="utf-8")
+        )
+        self.assertTrue(validate_receipt(receipt).valid)
+        self.assertTrue(validate_evidence(evidence).valid)
+        self.assertEqual(evidence["digest"], "sha256:" + hashlib.sha256(raw).hexdigest())
 
     def test_public_text_has_no_private_workspace_markers(self) -> None:
         forbidden = (

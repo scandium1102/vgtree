@@ -25,6 +25,10 @@ class PackageSmokeTests(unittest.TestCase):
         schema = files("vgtree").joinpath("schemas", "capability-map.schema.json")
         self.assertTrue(schema.is_file())
 
+    def test_package_contains_receipt_schema(self) -> None:
+        schema = files("vgtree").joinpath("schemas", "receipt.schema.json")
+        self.assertTrue(schema.is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
