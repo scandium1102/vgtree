@@ -1,0 +1,4 @@
+interface:
+  display_name: "Using VGTREE"
+  short_description: "Route complex work through evidence-gated tree execution"
+  default_prompt: "Use $using-vgtree to classify this task and run the correct evidence-gated workflow."
