@@ -59,6 +59,15 @@ class ContinuousIntegrationTests(unittest.TestCase):
         self.assertIn("setuptools==", lock)
         self.assertIn("wheel==", lock)
 
+    def test_publish_job_names_repository_without_git_checkout(self) -> None:
+        text = (ROOT / ".github" / "workflows" / "release.yml").read_text(
+            encoding="utf-8"
+        )
+        release_block = text.split("\n  release:\n", 1)[1]
+
+        self.assertNotIn("actions/checkout", release_block)
+        self.assertIn('GH_REPO: ${{ github.repository }}', release_block)
+
 
 if __name__ == "__main__":
     unittest.main()
