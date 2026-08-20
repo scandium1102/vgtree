@@ -1,0 +1,30 @@
+{
+  "fixture_version": "1.0",
+  "family": "website",
+  "request": "Build and release a complete responsive website",
+  "golden_capabilities": [
+    "home",
+    "routing",
+    "form",
+    "responsive",
+    "build",
+    "deploy"
+  ],
+  "required_interfaces": [
+    "navigation",
+    "artifact-digest",
+    "release-target"
+  ],
+  "invalid_cases": [
+    {
+      "id": "missing-deploy",
+      "expected_code": "ACCEPTANCE_MODULE_UNKNOWN"
+    }
+  ],
+  "expected_coverage": {
+    "required": 6,
+    "wide_pass_ready_before_evidence": false,
+    "wide_pass_ready_after_evidence": true
+  }
+}
+

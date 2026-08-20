@@ -1,0 +1,30 @@
+{
+  "fixture_version": "1.0",
+  "family": "vision",
+  "request": "Build a complete local computer vision pipeline",
+  "golden_capabilities": [
+    "input",
+    "preprocessing",
+    "model",
+    "output",
+    "rejection",
+    "report"
+  ],
+  "required_interfaces": [
+    "input-contract",
+    "model-artifact",
+    "result-report"
+  ],
+  "invalid_cases": [
+    {
+      "id": "missing-rejection",
+      "expected_code": "COVERAGE_REQUIRED_MODULE_MISSING"
+    }
+  ],
+  "expected_coverage": {
+    "required": 6,
+    "wide_pass_ready_before_evidence": false,
+    "wide_pass_ready_after_evidence": true
+  }
+}
+

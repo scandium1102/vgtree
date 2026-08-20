@@ -1,0 +1,71 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://vgtree.dev/schemas/behavioral-result.schema.json",
+  "title": "VGTREE Behavioral Evaluation Result",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "result_version",
+    "fixture_family",
+    "fixture_digest",
+    "run_date",
+    "provider",
+    "model",
+    "tool_availability",
+    "trial_count",
+    "baseline",
+    "candidate",
+    "artifact_references",
+    "claim_scope"
+  ],
+  "properties": {
+    "result_version": { "const": "1.0" },
+    "fixture_family": { "type": "string", "minLength": 1 },
+    "fixture_digest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "run_date": { "type": "string", "format": "date" },
+    "provider": { "type": "string", "minLength": 1 },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["selector", "reasoning"],
+      "properties": {
+        "selector": { "type": "string", "minLength": 1 },
+        "reasoning": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tool_availability": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "trial_count": { "type": "integer", "minimum": 1 },
+    "baseline": { "$ref": "#/$defs/metrics" },
+    "candidate": { "$ref": "#/$defs/metrics" },
+    "artifact_references": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "claim_scope": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "capability_recall",
+        "invalid_dependencies",
+        "premature_deep_attempts",
+        "unsupported_completion_claims"
+      ],
+      "properties": {
+        "capability_recall": { "type": "number", "minimum": 0, "maximum": 1 },
+        "invalid_dependencies": { "type": "integer", "minimum": 0 },
+        "premature_deep_attempts": { "type": "integer", "minimum": 0 },
+        "unsupported_completion_claims": { "type": "integer", "minimum": 0 }
+      }
+    }
+  }
+}
+

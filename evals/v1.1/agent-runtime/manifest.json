@@ -1,0 +1,28 @@
+{
+  "fixture_version": "1.0",
+  "family": "agent-runtime",
+  "request": "Build an inspectable agent runtime failure observer",
+  "golden_capabilities": [
+    "failed-response",
+    "incomplete-response",
+    "guardrail-rejection",
+    "branch-usage",
+    "handoff-graph"
+  ],
+  "required_interfaces": [
+    "response-id",
+    "handoff-id"
+  ],
+  "invalid_cases": [
+    {
+      "id": "missing-handoff",
+      "expected_code": "ACCEPTANCE_MODULE_UNKNOWN"
+    }
+  ],
+  "expected_coverage": {
+    "required": 5,
+    "wide_pass_ready_before_evidence": false,
+    "wide_pass_ready_after_evidence": true
+  }
+}
+

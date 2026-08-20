@@ -1,0 +1,17 @@
+{
+  "primary_skill": "planning-tree-work",
+  "support_skills": [
+    "using-vgtree"
+  ],
+  "override_reason": null,
+  "unload_condition": "Capability Map compiled",
+  "inspected_tools": [
+    "filesystem-read",
+    "vgtree-map-validate"
+  ],
+  "invoked_tools": [
+    "filesystem-read",
+    "vgtree-map-validate"
+  ]
+}
+

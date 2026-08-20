@@ -1,0 +1,33 @@
+{
+  "result_version": "1.0",
+  "fixture_family": "website",
+  "fixture_digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+  "run_date": "2026-08-20",
+  "provider": "recorded-provider",
+  "model": {
+    "selector": "recorded-selector",
+    "reasoning": "recorded-setting"
+  },
+  "tool_availability": [
+    "filesystem-read",
+    "vgtree"
+  ],
+  "trial_count": 1,
+  "baseline": {
+    "capability_recall": 1,
+    "invalid_dependencies": 0,
+    "premature_deep_attempts": 0,
+    "unsupported_completion_claims": 0
+  },
+  "candidate": {
+    "capability_recall": 1,
+    "invalid_dependencies": 0,
+    "premature_deep_attempts": 0,
+    "unsupported_completion_claims": 0
+  },
+  "artifact_references": [
+    "evals/v1.1/results/example.json"
+  ],
+  "claim_scope": "Example shape only; not a measured product result"
+}
+

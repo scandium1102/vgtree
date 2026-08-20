@@ -1,0 +1,27 @@
+{
+  "fixture_version": "1.0",
+  "family": "research",
+  "request": "Produce an evidence-backed research synthesis",
+  "golden_capabilities": [
+    "candidate-radar",
+    "primary-source-verification",
+    "synthesis",
+    "citation-audit"
+  ],
+  "required_interfaces": [
+    "source-id",
+    "claim-evidence"
+  ],
+  "invalid_cases": [
+    {
+      "id": "unknown-source-module",
+      "expected_code": "ACCEPTANCE_MODULE_UNKNOWN"
+    }
+  ],
+  "expected_coverage": {
+    "required": 4,
+    "wide_pass_ready_before_evidence": false,
+    "wide_pass_ready_after_evidence": true
+  }
+}
+
