@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="VGTREE 用可攜式 Skills、deterministic gates 與 local-first Obsidian 工作流，把複雜工作拆成可驗證成果。">
+  <meta name="theme-color" content="#0b1110">
+  <title>VGTREE — 把複雜工作長成可驗證的成果樹</title>
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../assets/styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#main">跳到主要內容</a>
+  <header class="site-header">
+    <nav class="site-nav shell" aria-label="主要導覽">
+      <a class="brand" href="../"><span class="brand-mark" aria-hidden="true">VG</span> VGTREE</a>
+      <div class="nav-links">
+        <a href="#workflow">工作流</a>
+        <a href="#skills">Skills</a>
+        <a href="#obsidian">Obsidian</a>
+        <a href="./" aria-current="page">繁中</a>
+        <a href="https://github.com/scandium1102/vgtree">GitHub</a>
+      </div>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero shell" id="product">
+      <div>
+        <p class="eyebrow">Local-first · 開源 · Evidence-backed</p>
+        <h1>先讓整棵樹長出來，再深入任何一根枝幹。</h1>
+        <p class="lede">VGTREE 把複雜工作拆成可驗證成果。它先畫出完整結果、覆蓋每個必要分支、控制何時能開始深挖，再用可檢查的 Receipts 綁定完成證據。</p>
+        <div class="hero-actions">
+          <a class="button button-primary" href="#install">安裝 VGTREE 1.1</a>
+          <a class="button button-secondary" href="https://github.com/scandium1102/vgtree">檢查原始碼</a>
+        </div>
+      </div>
+      <div class="terminal-card" aria-label="VGTREE 指令範例">
+        <div class="terminal-bar"><span class="terminal-dot"></span><span class="terminal-dot"></span><span class="terminal-dot"></span>release-tree.json</div>
+        <pre><span class="terminal-accent">$</span> vgtree --version
+vgtree 1.1.0
+
+<span class="terminal-accent">$</span> vgtree coverage --state state.json
+status: PASS
+covered_branches: 7 / 7
+execution_stage: WIDE
+
+<span class="terminal-accent">$</span> vgtree advance-depth --state state.json
+status: PASS
+execution_stage: DEEP</pre>
+      </div>
+    </section>
+
+    <section class="section" id="workflow">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">核心循環</p>
+          <h2>Map → Cover → Deepen → Prove</h2>
+          <p>VGTREE 把「先顧廣度」變成真的 gate，而不是一張最後被遺忘的規劃表。必要成果面可見後，深層工作才開始。</p>
+        </div>
+        <div class="workflow-grid">
+          <article class="step"><span class="step-number">1</span><h3>Map</h3><p>Capability Map 在實作前列出成果、依賴、shared interfaces、風險 owner 與 final acceptance。</p></article>
+          <article class="step"><span class="step-number">2</span><h3>Cover</h3><p>Coverage Gate 要求每個必要分支都有 minimum viable state 與 baseline evidence。</p></article>
+          <article class="step"><span class="step-number">3</span><h3>Deepen</h3><p>state 2.1 只允許從 WIDE 前進到 DEEP。Required policy 會阻止太早深挖；Advisory override 必須交代理由。</p></article>
+          <article class="step"><span class="step-number">4</span><h3>Prove</h3><p>Tool Receipts 將本機精確 bytes 綁到精簡證據，同時保留獨立的 integration 與 final verification gates。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="modes">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">一個產品，兩種誠實模式</p>
+          <h2>裝好 Skill 就能用；需要時再加入 deterministic Engine。</h2>
+          <p>兩種模式共享同一套 schemas、templates 與 contracts。Skills 不會自動安裝軟體。</p>
+        </div>
+        <div class="mode-grid">
+          <article class="mode-card"><span class="status-chip">ENGINE</span><h3>由機器執行 gates</h3><p>相容的本機 VGTREE 1.1 CLI 會驗證 maps、states、Coverage Gates、Receipts 與 transitions。只有真實 machine evidence 才能支援 <strong>PASS</strong>。</p></article>
+          <article class="mode-card"><span class="status-chip">SKILL_ONLY</span><h3>可攜式規劃與審查</h3><p>沒有預裝 CLI 時，仍可使用封裝的 references、schemas 與 templates。輸出必須標示 <code>engine_validation=NOT_RUN</code>，整體狀態最高只能到 <strong>REVIEW_REQUIRED</strong>。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="skills">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">六個專注的 Skills</p>
+          <h2>只載入這次工作真正需要的 bundle。</h2>
+          <p>預設 Context Budget 是一個 primary Skill，加上最多一個 support Skill。額外 bundle 必須說明理由與 unload condition。</p>
+        </div>
+        <div class="skills-grid">
+          <article class="skill-card"><span class="status-chip">ROUTER</span><h3>using-vgtree</h3><p>分類任務、選擇 ENGINE 或 SKILL_ONLY，並載入最小可用工作流 context。</p></article>
+          <article class="skill-card"><span class="status-chip">PLAN</span><h3>planning-tree-work</h3><p>建立 Capability Map、immutable branch contract、依賴、風險與 acceptance matrix。</p></article>
+          <article class="skill-card"><span class="status-chip">EXECUTE</span><h3>executing-tree-work</h3><p>執行 guarded branch work、記錄 breadth coverage，並控制 WIDE 到 DEEP 的前進。</p></article>
+          <article class="skill-card"><span class="status-chip">VERIFY</span><h3>verifying-tree-work</h3><p>檢查 branch evidence、integration、final verification、limitations 與可檢查 Receipts。</p></article>
+          <article class="skill-card"><span class="status-chip">ARCHITECT</span><h3>governing-knowledge-architecture</h3><p>設計 UID-first ownership、canonical roots、registries、provenance、lineage 與 rollback boundaries。</p></article>
+          <article class="skill-card"><span class="status-chip">OBSIDIAN</span><h3>building-obsidian-workspaces</h3><p>審查或規劃本機 vault 架構，並且只在全新或空白目的地建立 scaffold。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="obsidian">
+      <div class="shell">
+        <div class="obsidian-panel">
+          <div>
+            <p class="eyebrow">Obsidian 是核心配套</p>
+            <h2>把 vault 變成可檢查的 working memory。</h2>
+            <p class="lede">VGTREE 把執行樹與 UID-first knowledge architecture 接在一起。它可以只讀審查或規劃既有 vault；scaffold 僅限全新或空白目的地。</p>
+          </div>
+          <div>
+            <ul>
+              <li><strong>Core mode：</strong>project UID、canonical owner/root、registry、Home、Map、Status、Todo 與 rollback。</li>
+              <li><strong>Governed mode：</strong>再加入 file UID、raw-byte SHA-256、provenance、lineage、journaled transactions、reference coverage 與 readback。</li>
+              <li><strong>Local boundary：</strong>VGTREE 1.1 不會在既有 vault 內 apply、move、rename、rewrite 或 delete 檔案。</li>
+            </ul>
+            <div class="command"><code>vgtree obsidian audit --vault /notes --mode core</code></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="install">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">安裝</p>
+          <h2>先使用 Skills；需要 deterministic gates 時再加入 Engine。</h2>
+          <p>VGTREE 採 MIT License，免費開源。只有選配 Engine 需要 Python 3.10 以上。</p>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card"><h3>Python Engine</h3><p>安裝固定版本，Skill 選擇 ENGINE mode 前先確認相容性。</p><div class="command"><code>pip install vgtree==1.1.0</code></div><div class="command"><code>vgtree --version</code></div></article>
+          <article class="feature-card"><h3>Skills-only plugin</h3><p>核准後可從 OpenAI universal Plugins Directory 安裝，也可以在 GitHub 檢查精確 plugin bundle。不需要 VGTREE 帳號。</p><p><a href="https://github.com/scandium1102/vgtree/tree/main/plugins/vgtree">檢查 plugin 原始碼 →</a></p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="trust">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow">信任邊界</p>
+          <h2>Evidence-backed 不等於看到證據就盲信。</h2>
+          <p>VGTREE 讓 claim 可以被檢查，也讓不確定結果保持清楚。</p>
+        </div>
+        <div class="trust-grid">
+          <article class="trust-card"><h3>沒有 hosted control plane</h3><p>不需要 VGTREE 帳號、hosted service、MCP server、telemetry、analytics、cookies 或 remote fonts。</p></article>
+          <article class="trust-card"><h3>Structural validation</h3><p>Map 合法只證明 contract 一致，不代表規劃假設為真；Receipt 證明精確 bytes 與結構，不替產生工具背書。</p></article>
+          <article class="trust-card"><h3>完成 gates 分開</h3><p>Baseline coverage 不能替代 Definition of Done、integration 或 final-verification evidence。</p></article>
+          <article class="trust-card"><h3>授權由使用者持有</h3><p>External publication、破壞性修改、帳號、付款與 identity verification 仍是 host 與使用者的明確決定。</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="faq">
+      <div class="shell">
+        <div class="section-heading"><p class="eyebrow">FAQ</p><h2>限制講清楚，工作比較不會走偏。</h2></div>
+        <div class="faq-grid">
+          <article class="faq-card"><h3>VGTREE 是另一個 autonomous agent 嗎？</h3><p>不是。它是一套可攜式 workflow contract，加上一個選配 deterministic Engine；真正執行工作的仍是 host agent。</p></article>
+          <article class="faq-card"><h3>一定要有 CLI 嗎？</h3><p>不用。SKILL_ONLY 可以直接使用封裝資源，但因為沒有執行 Engine validation，會誠實停在 REVIEW_REQUIRED。</p></article>
+          <article class="faq-card"><h3>它會自動整理我的 vault 嗎？</h3><p>VGTREE 1.1 不會。既有 Obsidian vault 指令只做 audit 或產生 plan；scaffold 只限全新或空白目的地。</p></article>
+          <article class="faq-card"><h3>自己的程式可以呼叫嗎？</h3><p>可以。程式可 out-of-process 呼叫 JSON CLI、使用 schemas，或把 Skills 包進相容 host。VGTREE 維持 local-first 與 MIT。</p></article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="shell footer-row">
+      <span>VGTREE 1.1 · MIT · No telemetry</span>
+      <div class="footer-links"><a href="../privacy/">Privacy</a><a href="../terms/">Terms</a><a href="https://github.com/scandium1102/vgtree/issues">支援</a><a href="../" lang="en">English</a></div>
+    </div>
+  </footer>
+</body>
+</html>
