@@ -53,7 +53,32 @@ def valid_state() -> dict:
             },
         ],
         "evidence": [],
-        "history": [],
+        "history": [
+            {
+                "from": None,
+                "to": "mission_understanding",
+                "timestamp": "2026-08-20T00:00:00Z",
+                "reason": "workflow initialized",
+            },
+            {
+                "from": "mission_understanding",
+                "to": "outcome_definition",
+                "timestamp": "2026-08-20T00:00:01Z",
+                "reason": "computed phase gate passed",
+            },
+            {
+                "from": "outcome_definition",
+                "to": "breadth_mapping",
+                "timestamp": "2026-08-20T00:00:02Z",
+                "reason": "computed phase gate passed",
+            },
+            {
+                "from": "breadth_mapping",
+                "to": "branch_execution",
+                "timestamp": "2026-08-20T00:00:03Z",
+                "reason": "computed phase gate passed",
+            },
+        ],
     }
 
 
@@ -93,6 +118,36 @@ class TaskValidationTests(unittest.TestCase):
         task["signals"]["trust_me"] = True
 
         self.assertFalse(validate_task(task).valid)
+
+    def test_command_adjacent_identifiers_reject_shell_metacharacters(self) -> None:
+        task = valid_task()
+        task["task_id"] = "task;whoami"
+        self.assertFalse(validate_task(task).valid)
+
+        task = valid_task()
+        task["branches"] = [
+            {
+                "id": "build&whoami",
+                "title": "Build",
+                "kind": "primary",
+                "priority": "P0",
+                "depends_on": [],
+            }
+        ]
+        self.assertFalse(validate_task(task).valid)
+
+    def test_invalid_date_time_is_rejected(self) -> None:
+        item = {
+            "id": "ev-1",
+            "type": "test",
+            "subject": "artifact",
+            "method": "test command",
+            "timestamp": "not-a-date",
+            "outcome": "PASS",
+            "reference": "ci://run/123",
+        }
+
+        self.assertFalse(validate_evidence(item).valid)
 
 
 class StateValidationTests(unittest.TestCase):
@@ -166,6 +221,105 @@ class StateValidationTests(unittest.TestCase):
         codes = {issue.code for issue in report.issues}
         self.assertIn("LIMITATION_RECORD_REQUIRED", codes)
         self.assertIn("LIMITATION_EVIDENCE_REQUIRED", codes)
+
+    def test_task_class_must_match_computed_minimum(self) -> None:
+        state = valid_state()
+        state["task"]["signals"]["migration"] = True
+        state["task_class"] = "T0"
+
+        report = validate_state(state)
+
+        self.assertIn("TASK_CLASS_MISMATCH", {issue.code for issue in report.issues})
+
+    def test_tree_state_rejects_non_tree_route(self) -> None:
+        state = valid_state()
+        state["route"] = "direct"
+
+        self.assertFalse(validate_state(state).valid)
+
+    def test_phase_must_match_history(self) -> None:
+        state = valid_state()
+        state["phase"] = "integration"
+
+        report = validate_state(state)
+
+        self.assertIn("HISTORY_PHASE_MISMATCH", {issue.code for issue in report.issues})
+
+    def test_complete_phase_requires_terminal_branches_and_evidence(self) -> None:
+        state = valid_state()
+        state["phase"] = "complete"
+        state["history"].extend(
+            [
+                {
+                    "from": "branch_execution",
+                    "to": "integration",
+                    "timestamp": "2026-08-20T00:00:04Z",
+                    "reason": "computed phase gate passed",
+                },
+                {
+                    "from": "integration",
+                    "to": "verification",
+                    "timestamp": "2026-08-20T00:00:05Z",
+                    "reason": "computed phase gate passed",
+                },
+                {
+                    "from": "verification",
+                    "to": "complete",
+                    "timestamp": "2026-08-20T00:00:06Z",
+                    "reason": "computed phase gate passed",
+                },
+            ]
+        )
+
+        report = validate_state(state)
+
+        codes = {issue.code for issue in report.issues}
+        self.assertIn("PHASE_BRANCH_GATE_UNSATISFIED", codes)
+        self.assertIn("PHASE_INTEGRATION_EVIDENCE_REQUIRED", codes)
+        self.assertIn("PHASE_FINAL_EVIDENCE_REQUIRED", codes)
+
+    def test_maximum_depth_dag_is_validated_iteratively(self) -> None:
+        state = valid_state()
+        branches = []
+        for index in reversed(range(1000)):
+            branches.append(
+                {
+                    "id": f"b-{index}",
+                    "title": "Bounded branch",
+                    "kind": "secondary",
+                    "priority": "P1",
+                    "status": "PENDING",
+                    "depends_on": [f"b-{index - 1}"] if index else [],
+                    "evidence": [],
+                }
+            )
+        state["branches"] = branches
+        state["task"]["branches"] = [
+            {
+                key: branch[key]
+                for key in ("id", "title", "kind", "priority", "depends_on")
+            }
+            for branch in branches
+        ]
+
+        report = validate_state(state)
+
+        self.assertTrue(report.valid, report.issues)
+
+    def test_branch_count_is_bounded(self) -> None:
+        task = valid_task()
+        task["branches"] = [
+            {
+                "id": f"b-{index}",
+                "title": "Bounded branch",
+                "kind": "secondary",
+                "priority": "P1",
+                "depends_on": [],
+            }
+            for index in range(1001)
+        ]
+
+        self.assertFalse(validate_task(task).valid)
 
 
 if __name__ == "__main__":

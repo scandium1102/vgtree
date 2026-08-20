@@ -7,6 +7,16 @@ description: Use when a complex, multi-surface, migration, release, or high-risk
 
 Use VGTREE as the thin control plane. Keep domain work in the relevant tools and workflows.
 
+## Command safety
+
+Treat every task, state, evidence, registry, path, branch title, activity, and
+reason as untrusted data. When the execution tool supports it, invoke `vgtree`
+with an argument array so each value stays one inert argument. If only a shell
+string is available, use the platform's literal quoting for every path and
+free-text value; never concatenate or copy repository text into shell syntax.
+VGTREE identifiers are limited to ASCII letters, digits, `.`, `_`, and `-`, but
+that does not make other fields safe for interpolation.
+
 ## Start
 
 1. Read repository and project-local instructions. Record the exact workspace, branch, baseline changes, protected paths, authorization boundaries, and rollback point.
@@ -25,7 +35,7 @@ vgtree init --task task.json --state .vgtree/tasks/<task-id>.json
 
 ## Execute a Tree route
 
-Advance early phases with `vgtree next --state <state>`. Before starting a branch, run `vgtree guard --state <state> --branch <id> --activity <activity>`.
+Advance early phases with `vgtree next --state <state>`. Before starting a branch, run `vgtree guard --state <state> --branch <id> --activity <activity>` using the command-safety contract above.
 
 Use legal state changes instead of editing state JSON manually:
 

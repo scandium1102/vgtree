@@ -43,6 +43,32 @@ def initialized_state() -> dict:
     return result.data["state"]
 
 
+def at_phase(state: dict, phase: str) -> dict:
+    phases = (
+        "mission_understanding",
+        "outcome_definition",
+        "breadth_mapping",
+        "branch_execution",
+        "integration",
+        "verification",
+        "complete",
+    )
+    state["phase"] = phase
+    state["history"] = []
+    for index, target in enumerate(phases[: phases.index(phase) + 1]):
+        state["history"].append(
+            {
+                "from": None if index == 0 else phases[index - 1],
+                "to": target,
+                "timestamp": f"2026-08-20T00:00:{index:02d}Z",
+                "reason": "workflow initialized"
+                if index == 0
+                else "computed phase gate passed",
+            }
+        )
+    return state
+
+
 class EngineInitializationTests(unittest.TestCase):
     def test_initialize_builds_strict_state(self) -> None:
         state = initialized_state()
@@ -59,6 +85,17 @@ class EngineInitializationTests(unittest.TestCase):
 
         self.assertEqual(result.status, "FAIL")
         self.assertEqual(result.code, "TASK_INVALID")
+
+    def test_direct_task_is_classified_but_not_initialized_as_tree_state(self) -> None:
+        task = valid_task()
+        task["explicit_class"] = "T0"
+        task["signals"]["estimated_files"] = 1
+
+        result = VGTREEEngine().initialize(task)
+
+        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.code, "ROUTE_NOT_TREE")
+        self.assertEqual(result.data["decision"]["route"], "direct")
 
     def test_branch_definition_of_done_and_evidence_plan_are_preserved(self) -> None:
         task = valid_task()
@@ -99,7 +136,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_branch_execution_waits_for_primary_branch(self) -> None:
         state = initialized_state()
-        state["phase"] = "branch_execution"
+        at_phase(state, "branch_execution")
         state["branches"][0]["status"] = "IN_PROGRESS"
 
         result = VGTREEEngine().next(state)
@@ -109,7 +146,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_blocked_primary_branch_blocks_advancement(self) -> None:
         state = initialized_state()
-        state["phase"] = "branch_execution"
+        at_phase(state, "branch_execution")
         state["branches"][0].update(
             {
                 "status": "BLOCKED",
@@ -125,7 +162,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_accepted_limitation_can_satisfy_primary_branch(self) -> None:
         state = initialized_state()
-        state["phase"] = "branch_execution"
+        at_phase(state, "branch_execution")
         state["branches"][0].update(
             {
                 "status": "ACCEPTED_LIMITATION",
@@ -146,7 +183,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_integration_requires_integration_evidence(self) -> None:
         state = initialized_state()
-        state["phase"] = "integration"
+        at_phase(state, "integration")
         state["branches"][0]["status"] = "VERIFIED"
         state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
 
@@ -157,7 +194,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_verification_requires_final_evidence(self) -> None:
         state = initialized_state()
-        state["phase"] = "verification"
+        at_phase(state, "verification")
         state["branches"][0]["status"] = "VERIFIED"
         state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-integration", "integration")]
@@ -167,21 +204,21 @@ class EngineTransitionTests(unittest.TestCase):
         self.assertEqual(result.status, "REVIEW_REQUIRED")
         self.assertEqual(result.code, "FINAL_EVIDENCE_REQUIRED")
 
-    def test_complete_requires_prior_integration_evidence(self) -> None:
+    def test_verification_state_without_integration_evidence_is_invalid(self) -> None:
         state = initialized_state()
-        state["phase"] = "verification"
+        at_phase(state, "verification")
         state["branches"][0]["status"] = "VERIFIED"
         state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-final", "final-verification")]
 
         result = VGTREEEngine().complete(state)
 
-        self.assertEqual(result.status, "REVIEW_REQUIRED")
-        self.assertEqual(result.code, "INTEGRATION_EVIDENCE_REQUIRED")
+        self.assertEqual(result.status, "FAIL")
+        self.assertEqual(result.code, "STATE_INVALID")
 
     def test_complete_succeeds_only_from_verification(self) -> None:
         state = initialized_state()
-        state["phase"] = "verification"
+        at_phase(state, "verification")
         state["branches"][0]["status"] = "VERIFIED"
         state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [
@@ -197,7 +234,7 @@ class EngineTransitionTests(unittest.TestCase):
 
     def test_complete_rejects_earlier_phase_even_with_evidence(self) -> None:
         state = initialized_state()
-        state["phase"] = "mission_understanding"
+        at_phase(state, "mission_understanding")
         state["branches"][0]["status"] = "VERIFIED"
         state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
         state["evidence"] = [evidence("ev-final", "final-verification")]

@@ -128,7 +128,13 @@ class MigrationTests(unittest.TestCase):
         state = result.data["state"]
         self.assertEqual(state["schema_version"], "2.0")
         self.assertEqual(state["phase"], "branch_execution")
-        self.assertEqual(state["branches"][0]["status"], "VERIFIED")
+        self.assertEqual(state["branches"][0]["status"], "IN_PROGRESS")
+        self.assertTrue(
+            all(
+                item["outcome"] == "REVIEW_REQUIRED"
+                for item in state["branches"][0]["evidence"]
+            )
+        )
         self.assertEqual(state["branches"][1]["status"], "ACCEPTED_LIMITATION")
         self.assertEqual(state["branches"][2]["priority"], "DEFERRED")
 

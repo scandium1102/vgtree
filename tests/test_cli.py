@@ -7,7 +7,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from test_engine import evidence, initialized_state
+from test_engine import at_phase, evidence, initialized_state
 from test_persistence import legacy_state
 from test_validation import valid_task
 
@@ -102,7 +102,7 @@ class CoreCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             state_path = Path(directory) / "state.json"
             state = initialized_state()
-            state["phase"] = "branch_execution"
+            at_phase(state, "branch_execution")
             state["branches"][0]["status"] = "IN_PROGRESS"
             state_path.write_text(json.dumps(state), encoding="utf-8")
 
@@ -135,7 +135,7 @@ class CoreCliTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             state_path = Path(directory) / "state.json"
             state = initialized_state()
-            state["phase"] = "verification"
+            at_phase(state, "verification")
             state["branches"][0]["status"] = "VERIFIED"
             state["branches"][0]["evidence"] = [evidence("ev-build", "test")]
             state["evidence"] = [

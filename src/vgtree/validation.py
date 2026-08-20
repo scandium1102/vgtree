@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import json
+import re
+from collections import deque
+from datetime import datetime
 from importlib.resources import files
 from typing import Any, Iterable
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, FormatChecker
 
 from vgtree.models import ValidationIssue, ValidationReport
+from vgtree.semantics import compute_task_class
 
 
 def _load_schema(name: str) -> dict[str, Any]:
@@ -18,15 +22,46 @@ def _load_schema(name: str) -> dict[str, Any]:
 
 TASK_SCHEMA = _load_schema("task.schema.json")
 STATE_SCHEMA = _load_schema("state.schema.json")
-TASK_VALIDATOR = Draft202012Validator(TASK_SCHEMA)
-STATE_VALIDATOR = Draft202012Validator(STATE_SCHEMA)
+FORMAT_CHECKER = FormatChecker()
+
+
+@FORMAT_CHECKER.checks("date-time")
+def _is_rfc3339_date_time(value: object) -> bool:
+    if not isinstance(value, str):
+        return True
+    if not re.fullmatch(
+        r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})",
+        value,
+    ):
+        return False
+    try:
+        parsed = datetime.fromisoformat(value[:-1] + "+00:00" if value.endswith("Z") else value)
+    except ValueError:
+        return False
+    return parsed.tzinfo is not None
+
+
+TASK_VALIDATOR = Draft202012Validator(TASK_SCHEMA, format_checker=FORMAT_CHECKER)
+STATE_VALIDATOR = Draft202012Validator(STATE_SCHEMA, format_checker=FORMAT_CHECKER)
 EVIDENCE_VALIDATOR = Draft202012Validator(
     {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$ref": "#/$defs/evidence",
         "$defs": STATE_SCHEMA["$defs"],
-    }
+    },
+    format_checker=FORMAT_CHECKER,
 )
+
+PHASES = (
+    "mission_understanding",
+    "outcome_definition",
+    "breadth_mapping",
+    "branch_execution",
+    "integration",
+    "verification",
+    "complete",
+)
+TERMINAL_BRANCH_STATUSES = {"VERIFIED", "ACCEPTED_LIMITATION"}
 
 
 def _json_path(parts: Iterable[Any]) -> str:
@@ -65,7 +100,8 @@ def validate_state(state: Any) -> ValidationReport:
         return _report(issues)
 
     task = state.get("task")
-    for issue in validate_task(task).issues:
+    task_report = validate_task(task)
+    for issue in task_report.issues:
         issues.append(
             ValidationIssue(issue.code, f"$.task{issue.path[1:]}", issue.message)
         )
@@ -75,6 +111,18 @@ def validate_state(state: Any) -> ValidationReport:
         return _report(issues)
 
     issues.extend(_branch_issues(branches))
+    issues.extend(_history_issues(state))
+    if task_report.valid:
+        computed_class, _ = compute_task_class(task)
+        if state.get("task_class") != computed_class:
+            issues.append(
+                ValidationIssue(
+                    "TASK_CLASS_MISMATCH",
+                    "$.task_class",
+                    f"task_class must equal computed class {computed_class}.",
+                )
+            )
+    issues.extend(_phase_gate_issues(state, branches))
     return _report(_deduplicate(issues))
 
 
@@ -201,23 +249,135 @@ def _branch_issues(branches: list[Any]) -> list[ValidationIssue]:
 
 
 def _has_cycle(graph: dict[str, list[str]]) -> bool:
-    visiting: set[str] = set()
-    visited: set[str] = set()
+    indegree = {node: 0 for node in graph}
+    dependents: dict[str, list[str]] = {node: [] for node in graph}
+    for node, dependencies in graph.items():
+        for dependency in dependencies:
+            if dependency not in graph:
+                continue
+            indegree[node] += 1
+            dependents[dependency].append(node)
 
-    def visit(node: str) -> bool:
-        if node in visiting:
-            return True
-        if node in visited:
-            return False
-        visiting.add(node)
-        for dependency in graph.get(node, []):
-            if dependency in graph and visit(dependency):
-                return True
-        visiting.remove(node)
-        visited.add(node)
-        return False
+    ready = deque(node for node, count in indegree.items() if count == 0)
+    visited = 0
+    while ready:
+        node = ready.popleft()
+        visited += 1
+        for dependent in dependents[node]:
+            indegree[dependent] -= 1
+            if indegree[dependent] == 0:
+                ready.append(dependent)
+    return visited != len(graph)
 
-    return any(visit(node) for node in graph if node not in visited)
+
+def _history_issues(state: dict[str, Any]) -> list[ValidationIssue]:
+    history = state.get("history")
+    if not isinstance(history, list) or not history:
+        return []
+
+    issues: list[ValidationIssue] = []
+    previous_to: str | None = None
+    for index, item in enumerate(history):
+        if not isinstance(item, dict):
+            continue
+        current_from = item.get("from")
+        current_to = item.get("to")
+        expected_from = None if index == 0 else previous_to
+        if current_from != expected_from:
+            issues.append(
+                ValidationIssue(
+                    "HISTORY_CHAIN_INVALID",
+                    f"$.history[{index}].from",
+                    f"History transition must start from {expected_from!r}.",
+                )
+            )
+        if index == 0:
+            if current_to != PHASES[0]:
+                issues.append(
+                    ValidationIssue(
+                        "HISTORY_INITIAL_PHASE_INVALID",
+                        "$.history[0].to",
+                        f"History must begin at {PHASES[0]}.",
+                    )
+                )
+        elif previous_to in PHASES:
+            expected_index = PHASES.index(previous_to) + 1
+            expected_to = PHASES[expected_index] if expected_index < len(PHASES) else None
+            if current_to != expected_to:
+                issues.append(
+                    ValidationIssue(
+                        "HISTORY_TRANSITION_INVALID",
+                        f"$.history[{index}].to",
+                        f"Expected next phase {expected_to!r}.",
+                    )
+                )
+        previous_to = current_to if isinstance(current_to, str) else None
+
+    if previous_to != state.get("phase"):
+        issues.append(
+            ValidationIssue(
+                "HISTORY_PHASE_MISMATCH",
+                "$.history",
+                "The final history target must equal the current phase.",
+            )
+        )
+    return issues
+
+
+def _phase_gate_issues(
+    state: dict[str, Any], branches: list[Any]
+) -> list[ValidationIssue]:
+    phase = state.get("phase")
+    if phase not in PHASES:
+        return []
+    primary = [
+        branch
+        for branch in branches
+        if isinstance(branch, dict) and branch.get("kind") == "primary"
+    ]
+    primary_terminal = all(
+        branch.get("status") in TERMINAL_BRANCH_STATUSES for branch in primary
+    )
+    evidence = state.get("evidence")
+    evidence_records = evidence if isinstance(evidence, list) else []
+    integration_pass = _has_passing_evidence(evidence_records, "integration")
+    final_pass = _has_passing_evidence(evidence_records, "final-verification")
+
+    issues: list[ValidationIssue] = []
+    if PHASES.index(phase) >= PHASES.index("integration") and not primary_terminal:
+        issues.append(
+            ValidationIssue(
+                "PHASE_BRANCH_GATE_UNSATISFIED",
+                "$.phase",
+                "Integration and later phases require terminal primary branches.",
+            )
+        )
+    if PHASES.index(phase) >= PHASES.index("verification") and not integration_pass:
+        issues.append(
+            ValidationIssue(
+                "PHASE_INTEGRATION_EVIDENCE_REQUIRED",
+                "$.evidence",
+                "Verification and completion require passing integration evidence.",
+            )
+        )
+    if phase == "complete" and not final_pass:
+        issues.append(
+            ValidationIssue(
+                "PHASE_FINAL_EVIDENCE_REQUIRED",
+                "$.evidence",
+                "Complete phase requires passing final-verification evidence.",
+            )
+        )
+    return issues
+
+
+def _has_passing_evidence(evidence: list[Any], evidence_type: str) -> bool:
+    return any(
+        isinstance(item, dict)
+        and item.get("type") == evidence_type
+        and item.get("outcome") == "PASS"
+        for item in evidence
+    )
 
 
 def _deduplicate(issues: list[ValidationIssue]) -> list[ValidationIssue]:

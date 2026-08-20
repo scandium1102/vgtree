@@ -11,6 +11,7 @@ from typing import Any
 from vgtree import __version__
 from vgtree.models import GuardResult
 from vgtree.routing import TREE_WORKFLOW_REF
+from vgtree.semantics import compute_task_class
 from vgtree.store import StateStore
 from vgtree.validation import validate_state
 
@@ -36,8 +37,8 @@ STATUS_MAP = {
     "missing": "PENDING",
     "skeleton": "IN_PROGRESS",
     "usable": "IN_PROGRESS",
-    "integrated": "VERIFIED",
-    "verified": "VERIFIED",
+    "integrated": "IN_PROGRESS",
+    "verified": "IN_PROGRESS",
     "blocked": "BLOCKED",
 }
 
@@ -140,9 +141,9 @@ def migrate_state(
         "engine_version": __version__,
         "workflow_ref": TREE_WORKFLOW_REF,
         "task": task,
-        "task_class": legacy["task_class"],
+        "task_class": compute_task_class(task)[0],
         "route": "tree",
-        "phase": PHASE_MAP.get(legacy["phase"], "verification"),
+        "phase": "branch_execution",
         "branches": branches,
         "evidence": [
             _evidence(
@@ -165,14 +166,7 @@ def migrate_state(
                 for index, item in enumerate(legacy.get("evidence", []), start=1)
             ],
         ],
-        "history": [
-            {
-                "from": legacy["phase"],
-                "to": PHASE_MAP.get(legacy["phase"], "verification"),
-                "timestamp": timestamp,
-                "reason": "state migrated from schema 1.1",
-            }
-        ],
+        "history": _history_to_branch_execution(timestamp),
     }
     report = validate_state(state)
     if not report.valid:
@@ -192,6 +186,7 @@ def migrate_state(
             "notes": [
                 "Legacy caller-provided gate booleans were not promoted as proof.",
                 "Legacy free-text evidence was retained as typed observations.",
+                "Legacy verified or integrated branches require fresh re-verification.",
             ],
         },
     )
@@ -250,7 +245,6 @@ def _migrate_branch(
     if kind == "primary" and priority == "DEFERRED":
         priority = "P2"
 
-    outcome = "PASS" if status == "VERIFIED" else "REVIEW_REQUIRED"
     evidence = [
         _evidence(
             f"{branch['id']}-legacy-{index}",
@@ -258,7 +252,7 @@ def _migrate_branch(
             str(item),
             None,
             timestamp,
-            outcome,
+            "REVIEW_REQUIRED",
         )
         for index, item in enumerate(branch.get("evidence", []), start=1)
     ]
@@ -320,3 +314,21 @@ def _evidence(
 
 def _timestamp() -> str:
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def _history_to_branch_execution(timestamp: str) -> list[dict[str, Any]]:
+    phases = (
+        "mission_understanding",
+        "outcome_definition",
+        "breadth_mapping",
+        "branch_execution",
+    )
+    return [
+        {
+            "from": None if index == 0 else phases[index - 1],
+            "to": phase,
+            "timestamp": timestamp,
+            "reason": "state migrated from schema 1.1",
+        }
+        for index, phase in enumerate(phases)
+    ]

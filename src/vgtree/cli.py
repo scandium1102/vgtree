@@ -13,6 +13,7 @@ from vgtree.migration import migrate_state_file
 from vgtree.models import GuardResult
 from vgtree.obsidian import ObsidianWorkspace
 from vgtree.store import StateStore
+from vgtree.validation import validate_task
 
 
 EXIT_CODES = {"PASS": 0, "FAIL": 1, "REVIEW_REQUIRED": 2, "BLOCKED": 3}
@@ -145,14 +146,20 @@ def _classify(arguments: argparse.Namespace) -> GuardResult:
     engine = _engine_from_registry(arguments.registry)
     if isinstance(engine, GuardResult):
         return engine
-    initialized = engine.initialize(loaded)
-    if initialized.status != "PASS":
-        return initialized
+    report = validate_task(loaded)
+    if not report.valid:
+        return GuardResult(
+            "FAIL",
+            "TASK_INVALID",
+            "Task specification failed validation.",
+            {"validation": report.as_dict()},
+        )
+    decision = engine.classify(loaded)
     return GuardResult(
         "PASS",
         "CLASSIFIED",
         "Task classification and route were computed.",
-        {"decision": initialized.data["decision"]},
+        {"decision": decision.as_dict()},
     )
 
 

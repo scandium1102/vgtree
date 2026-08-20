@@ -6,7 +6,12 @@
   "additionalProperties": false,
   "required": ["task_id", "title", "signals"],
   "properties": {
-    "task_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
     "title": { "type": "string", "minLength": 1, "maxLength": 500 },
     "description": { "type": "string", "maxLength": 10000 },
     "explicit_class": { "enum": ["T0", "T1", "T2", "T3", "T4"] },
@@ -56,33 +61,47 @@
     },
     "branches": {
       "type": "array",
+      "maxItems": 1000,
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["id", "title", "kind", "priority", "depends_on"],
         "properties": {
-          "id": { "type": "string", "minLength": 1 },
-          "title": { "type": "string", "minLength": 1 },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128,
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+          },
+          "title": { "type": "string", "minLength": 1, "maxLength": 500 },
           "kind": { "enum": ["primary", "secondary"] },
           "priority": { "enum": ["P0", "P1", "P2", "DEFERRED"] },
           "depends_on": {
             "type": "array",
-            "items": { "type": "string", "minLength": 1 },
+            "maxItems": 1000,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+            },
             "uniqueItems": true
           },
           "definition_of_done": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },
             "minItems": 1,
+            "maxItems": 100,
             "uniqueItems": true
           },
           "evidence_requirements": {
             "type": "array",
             "items": { "type": "string", "minLength": 1 },
             "minItems": 1,
+            "maxItems": 100,
             "uniqueItems": true
           },
-          "stop_condition": { "type": "string", "minLength": 1 }
+          "stop_condition": { "type": "string", "minLength": 1, "maxLength": 2000 }
         }
       }
     }

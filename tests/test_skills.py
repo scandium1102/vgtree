@@ -31,6 +31,8 @@ class UsingVgtreeSkillTests(unittest.TestCase):
         self.assertIn("vgtree init", body)
         self.assertIn("vgtree validate", body)
         self.assertIn("Never", body)
+        self.assertIn("untrusted data", body)
+        self.assertIn("argument array", body)
 
 
 class PlanningTreeWorkSkillTests(unittest.TestCase):
@@ -56,6 +58,8 @@ class ExecutingTreeWorkSkillTests(unittest.TestCase):
         self.assertIn("vgtree record-evidence", body)
         self.assertIn("rabbit hole", body.lower())
         self.assertIn("BLOCKED", body)
+        self.assertIn("untrusted data", body)
+        self.assertIn("argument array", body)
 
 
 class VerifyingTreeWorkSkillTests(unittest.TestCase):

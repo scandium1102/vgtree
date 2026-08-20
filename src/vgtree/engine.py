@@ -50,6 +50,16 @@ class VGTREEEngine:
             )
 
         decision = self.classify(task)
+        if decision.route != "tree":
+            return GuardResult(
+                status="REVIEW_REQUIRED",
+                code="ROUTE_NOT_TREE",
+                message=(
+                    "Only Tree-routed tasks create VGTREE state; follow the "
+                    f"{decision.route} route instead."
+                ),
+                data={"decision": decision.as_dict()},
+            )
         branch_specs = task.get("branches") or [
             {
                 "id": "primary-outcome",
