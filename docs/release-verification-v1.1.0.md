@@ -1,13 +1,14 @@
 # VGTREE 1.1.0 Release Verification
 
 - Date: 2026-08-21
-- Runtime candidate commit: `aee3a52`; verification-only commits follow it
-- Local candidate status: **PASS**
-- Public release status: **PENDING EXPLICIT AUTHORIZATION**
+- Tagged release commit: `77121a03ff506ca1c5d609cf2673b593f4abbb59`
+- Local candidate status: **PASS WITH PUBLIC-BYTE QUALIFICATION**
+- Public release status: **IN PROGRESS** — GitHub Release and Pages readback
+  passed; PyPI and OpenAI directory publication remain external gates
 
-This record describes checks that were actually run. It does not claim that
-GitHub Pages, GitHub Release, PyPI, or the OpenAI Plugins Directory already
-contains VGTREE 1.1.0.
+This record describes checks that were actually run and distinguishes completed
+public readback from remaining external gates. It does not claim that PyPI or
+the OpenAI Plugins Directory contains VGTREE 1.1.0 until those readbacks pass.
 
 ## Source and deterministic validation
 
@@ -42,16 +43,24 @@ contains VGTREE 1.1.0.
 
 ## Release artifacts
 
-Two independent builds produced byte-for-byte identical payloads and checksum
-manifests.
+The canonical public artifacts are the outputs built from the clean `v1.1.0`
+tag checkout by GitHub Actions. Their `SHA256SUMS` manifest validates all four
+payloads, and a fresh public download produced the following byte digests:
 
 | Artifact | SHA-256 |
 |---|---|
-| `vgtree-1.1.0-py3-none-any.whl` | `88a694cd35b81c288cf2e9a929c765ade311666e7ad8221a56a5af2b9e04eceb` |
-| `vgtree-1.1.0.tar.gz` | `b8941eb09b9a03216bb3cfbec517a8be4b10a02a1155c3bab6824af595e79baa` |
-| `vgtree-plugin-1.1.0.zip` | `60f9f88c79b1f3738824b4a65b52d619927227d5b8aacf0f5a07214f96ea98e6` |
-| `vgtree-skills-1.1.0.zip` | `0e921b769753fbf15c7379754a8a3b1e073d2f8e88de2dd794ed4fc5e86f4f4e` |
-| `SHA256SUMS` | `1d9a92089407ad03574505c7d2897e771ff649d30fb9a99e1eaed7bbc0aca0ad` |
+| `vgtree-1.1.0-py3-none-any.whl` | `b1adb3b9353fd96a787b466f1bd85319da5506c1a75e762e3aaa1720544afc0a` |
+| `vgtree-1.1.0.tar.gz` | `e8ed6b63b605be7127f73ba1584b6a290c9487ea9aff0c283280da7b3d3f2363` |
+| `vgtree-plugin-1.1.0.zip` | `de86e551c152cdc21d895ca47f85b97801984b3e11f06de66007a703a31a4dd5` |
+| `vgtree-skills-1.1.0.zip` | `d8cb8b2ebed579fb5f474b37498624620bacf9ac77ffb8787014e722ab5e5d45` |
+| `SHA256SUMS` | `114cfccb0c256805a287338896670199ff9edbd177e405e09abce4e4c4be06c2` |
+
+The earlier Windows worktree verification repeated successfully inside that
+worktree but included mixed working-copy line endings, so its hashes were not
+used as public-byte authority. A separate clean checkout of the immutable tag
+reproduced the two Plugin ZIPs byte-for-byte. Wheel and sdist reproducibility
+is scoped to the pinned release build environment; the public files themselves
+passed manifest verification, metadata validation, and clean installation.
 
 Archive inspection confirmed safe relative paths, no duplicate wheel entries,
 regular-file/directory-only source distribution members, normalized metadata,
@@ -59,7 +68,7 @@ all four packaged schemas, and the intended Plugin and Skills-only layouts.
 
 ## Clean-room behavior
 
-- A new environment installed the exact wheel with dependencies, reported
+- A new environment installed the exact public GitHub Release wheel with dependencies, reported
   `vgtree 1.1.0`, passed `pip check`, and exposed every documented command.
 - From that wheel, Capability Map validation and compilation passed, state
   initialization passed, required coverage correctly returned `BLOCKED` before
@@ -68,9 +77,10 @@ all four packaged schemas, and the intended Plugin and Skills-only layouts.
   `vgtree 1.1.0`, passed package-data checks for the new schemas, and passed
   `pip check`.
 
-Clean installation from the eventual GitHub Release and PyPI files remains a
-post-publication readback gate. Local installation is not evidence that either
-external service has published the files.
+The downloaded public wheel and sdist also passed `twine check`; the downloaded
+Plugin ZIP passed the official Plugin validator and all six official Skill
+validators. Clean installation from PyPI remains a separate post-publication
+readback gate.
 
 ## Website and publishing controls
 
@@ -87,13 +97,19 @@ external service has published the files.
 
 ## Deliberate external gates
 
-The following are not yet performed and must remain separate authorized actions:
+Completed public gates:
 
-1. Push the branch, create and review a pull request, pass remote CI, merge, and
-   deploy/read back GitHub Pages.
-2. Create the immutable `v1.1.0` tag, publish GitHub Release and PyPI, then read
-   back assets, metadata, attestations, hashes, and clean installs.
-3. Complete individual identity verification in the OpenAI Portal by the owner.
-4. Create and scan the Skills-only Plugin draft using the exact release bundle.
-5. Submit for review.
-6. Publish after approval.
+1. The release branch, PR CI, merge, and main CI passed.
+2. GitHub Pages deployed and all six routes/assets passed anonymous exact-byte
+   readback.
+3. The immutable `v1.1.0` tag and GitHub Release were published; all five
+   public assets passed inventory and checksum readback.
+
+Remaining external gates:
+
+1. Configure the PyPI pending Trusted Publisher, rerun the failed PyPI job from
+   the same release run, and verify metadata, attestations, hashes, and a clean
+   install.
+2. Complete individual identity verification in the OpenAI Portal by the owner.
+3. Create and scan the Skills-only Plugin draft using the exact public Plugin
+   bundle, submit it for review, and publish after approval.
