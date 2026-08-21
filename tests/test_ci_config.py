@@ -50,7 +50,8 @@ class ContinuousIntegrationTests(unittest.TestCase):
         self.assertIn("needs: build", text)
         self.assertIn("contents: write", text)
         release_block = text.split("\n  release:\n", 1)[1]
-        self.assertNotIn("actions/checkout", release_block)
+        self.assertIn("actions/checkout", release_block)
+        self.assertIn("persist-credentials: false", release_block)
         self.assertNotIn("pip install", release_block)
         self.assertIn("sha256sum -c SHA256SUMS", release_block)
 
@@ -62,13 +63,16 @@ class ContinuousIntegrationTests(unittest.TestCase):
         self.assertIn("setuptools==", lock)
         self.assertIn("wheel==", lock)
 
-    def test_publish_job_names_repository_without_git_checkout(self) -> None:
+    def test_publish_job_has_git_context_for_verify_tag(self) -> None:
         text = (ROOT / ".github" / "workflows" / "release.yml").read_text(
             encoding="utf-8"
         )
         release_block = text.split("\n  release:\n", 1)[1]
 
-        self.assertNotIn("actions/checkout", release_block)
+        self.assertIn("actions/checkout", release_block)
+        checkout_index = release_block.index("actions/checkout")
+        publish_index = release_block.index("gh release create")
+        self.assertLess(checkout_index, publish_index)
         self.assertIn('GH_REPO: ${{ github.repository }}', release_block)
 
     def test_pypi_job_uses_trusted_publishing_with_manual_environment_gate(self) -> None:
