@@ -7,6 +7,12 @@ description: Use when agents must verify a multi-branch VGTREE outcome with fres
 
 Verification asks whether the requested outcome is proven now, on the exact integrated state. It does not reward effort or branch count.
 
+## Runtime mode
+
+Run `vgtree --version` without installing software. Use `ENGINE` only for a compatible 1.1.x CLI. Otherwise use `SKILL_ONLY` and the packaged resources under `../../shared/`. Do not install VGTREE automatically.
+
+In `SKILL_ONLY`, report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and an overall status no higher than `REVIEW_REQUIRED`. The fallback may plan, record, and review work, but it cannot claim that deterministic VGTREE gates returned `PASS`. Read `../../shared/references/runtime-modes.md` when choosing or reporting the mode.
+
 ## Establish the verification subject
 
 Identify the exact commit, artifact, schema, vault snapshot, deployment, or release being verified. Evidence from another subject or older integrated state is stale even if it once passed.
@@ -48,6 +54,20 @@ vgtree next --state <state>
 ```
 
 The integration evidence type must be `integration` with outcome `PASS` before the engine enters verification.
+
+## Bind Tool Receipts
+
+Keep detailed provenance in a receipt below an explicit receipt root. Validate the exact receipt bytes, generate compact evidence from those same bytes, then attach it through the existing state command:
+
+```text
+vgtree receipt validate --root <receipt-root> --receipt <receipt.json>
+vgtree receipt evidence --root <receipt-root> --receipt <receipt.json> --output <evidence.json>
+vgtree record-evidence --state <state> --branch <id> --evidence <evidence.json>
+```
+
+Revalidate the receipt and reference if the subject changes. Structural receipt validation does not prove that a tool told the truth, and receipt baseline evidence does not replace integration or final-verification evidence.
+
+In `SKILL_ONLY`, use `../../shared/templates/receipt.json` only as a review record. Do not install VGTREE or claim its digest, containment, evidence, or completion gates passed. Report `engine_validation=NOT_RUN` and overall `REVIEW_REQUIRED`.
 
 ## Verify external effects separately
 

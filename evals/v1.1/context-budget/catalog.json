@@ -1,0 +1,354 @@
+{
+  "tools": [
+    {
+      "name": "filesystem-read",
+      "description": "Generic evaluation tool 01",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "vgtree-map-validate",
+      "description": "Generic evaluation tool 02",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-03",
+      "description": "Generic evaluation tool 03",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-04",
+      "description": "Generic evaluation tool 04",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-05",
+      "description": "Generic evaluation tool 05",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-06",
+      "description": "Generic evaluation tool 06",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-07",
+      "description": "Generic evaluation tool 07",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-08",
+      "description": "Generic evaluation tool 08",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-09",
+      "description": "Generic evaluation tool 09",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-10",
+      "description": "Generic evaluation tool 10",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-11",
+      "description": "Generic evaluation tool 11",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-12",
+      "description": "Generic evaluation tool 12",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-13",
+      "description": "Generic evaluation tool 13",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-14",
+      "description": "Generic evaluation tool 14",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-15",
+      "description": "Generic evaluation tool 15",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-16",
+      "description": "Generic evaluation tool 16",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-17",
+      "description": "Generic evaluation tool 17",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-18",
+      "description": "Generic evaluation tool 18",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-19",
+      "description": "Generic evaluation tool 19",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-20",
+      "description": "Generic evaluation tool 20",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-21",
+      "description": "Generic evaluation tool 21",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-22",
+      "description": "Generic evaluation tool 22",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-23",
+      "description": "Generic evaluation tool 23",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-24",
+      "description": "Generic evaluation tool 24",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-25",
+      "description": "Generic evaluation tool 25",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-26",
+      "description": "Generic evaluation tool 26",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-27",
+      "description": "Generic evaluation tool 27",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-28",
+      "description": "Generic evaluation tool 28",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-29",
+      "description": "Generic evaluation tool 29",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-30",
+      "description": "Generic evaluation tool 30",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-31",
+      "description": "Generic evaluation tool 31",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-32",
+      "description": "Generic evaluation tool 32",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-33",
+      "description": "Generic evaluation tool 33",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-34",
+      "description": "Generic evaluation tool 34",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-35",
+      "description": "Generic evaluation tool 35",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-36",
+      "description": "Generic evaluation tool 36",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-37",
+      "description": "Generic evaluation tool 37",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-38",
+      "description": "Generic evaluation tool 38",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-39",
+      "description": "Generic evaluation tool 39",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-40",
+      "description": "Generic evaluation tool 40",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-41",
+      "description": "Generic evaluation tool 41",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-42",
+      "description": "Generic evaluation tool 42",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-43",
+      "description": "Generic evaluation tool 43",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-44",
+      "description": "Generic evaluation tool 44",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-45",
+      "description": "Generic evaluation tool 45",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-46",
+      "description": "Generic evaluation tool 46",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-47",
+      "description": "Generic evaluation tool 47",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-48",
+      "description": "Generic evaluation tool 48",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-49",
+      "description": "Generic evaluation tool 49",
+      "input_schema": {
+        "type": "object"
+      }
+    },
+    {
+      "name": "tool-50",
+      "description": "Generic evaluation tool 50",
+      "input_schema": {
+        "type": "object"
+      }
+    }
+  ]
+}

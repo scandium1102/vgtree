@@ -1,0 +1,9 @@
+{
+  "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+  "id": "baseline-authorize-1",
+  "method": "Fresh authorization record",
+  "outcome": "PASS",
+  "subject": "branch:authorize:baseline",
+  "timestamp": "2026-08-20T00:00:00Z",
+  "type": "baseline"
+}

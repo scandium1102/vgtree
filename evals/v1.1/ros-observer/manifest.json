@@ -1,0 +1,26 @@
+{
+  "fixture_version": "1.0",
+  "family": "ros-observer",
+  "request": "Build a read-only ROS observer and playback evidence workflow",
+  "golden_capabilities": [
+    "health-summary",
+    "recent-faults",
+    "bag-capture",
+    "playback-manifest"
+  ],
+  "required_interfaces": [
+    "ros-domain",
+    "bag-digest"
+  ],
+  "invalid_cases": [
+    {
+      "id": "unsafe-control-capability",
+      "expected_code": "CAPABILITY_ID_DUPLICATE"
+    }
+  ],
+  "expected_coverage": {
+    "required": 4,
+    "wide_pass_ready_before_evidence": false,
+    "wide_pass_ready_after_evidence": true
+  }
+}

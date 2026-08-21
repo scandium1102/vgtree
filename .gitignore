@@ -8,4 +8,6 @@ build/
 dist/
 .venv/
 .vgtree/
-
+.worktrees/
+.playwright-cli/
+output/

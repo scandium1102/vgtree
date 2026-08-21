@@ -30,13 +30,24 @@ jobs:
         run: test "v$(python -c 'import vgtree; print(vgtree.__version__)')" = "$GITHUB_REF_NAME"
       - name: Build artifacts
         run: |
+          version="$(python -c 'import vgtree; print(vgtree.__version__)')"
           python -m build --no-isolation
-          cd dist
-          sha256sum *.whl *.tar.gz > SHA256SUMS
+          python scripts/build_release_bundles.py --dist dist --version "$version"
+          test -f "dist/vgtree-plugin-${version}.zip"
+          test -f "dist/vgtree-skills-${version}.zip"
+          cd dist && sha256sum -c SHA256SUMS
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-dist
           path: dist/
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: pypi-dist
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
           if-no-files-found: error
           retention-days: 7
 
@@ -57,3 +68,22 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: gh release create "$GITHUB_REF_NAME" dist/* --verify-tag --generate-notes --title "VGTREE $GITHUB_REF_NAME"
+
+  pypi:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/vgtree
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: pypi-dist
+          path: dist
+      - name: Publish package distributions to PyPI
+        uses: pypa/gh-action-pypi-publish@dc37677b2e1c63e2034f94d8a5b11f265b73ba33 # v1.14.2
+        with:
+          packages-dir: dist
+          attestations: true

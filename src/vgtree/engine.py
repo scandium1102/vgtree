@@ -8,9 +8,15 @@ from datetime import datetime, timezone
 from typing import Any
 
 from vgtree import __version__
+from vgtree.coverage import compute_coverage
 from vgtree.models import Decision, GuardResult, ValidationReport
 from vgtree.routing import TREE_WORKFLOW_REF, classify_task
-from vgtree.validation import validate_evidence, validate_state, validate_task
+from vgtree.validation import (
+    has_passing_completion_evidence,
+    validate_evidence,
+    validate_state,
+    validate_task,
+)
 
 
 PHASES = (
@@ -77,8 +83,15 @@ class VGTREEEngine:
             }
             for branch in branch_specs
         ]
+        task_map = task.get("capability_map")
+        policy = (
+            task_map.get("wide_pass_policy")
+            if isinstance(task_map, dict)
+            else "OFF"
+        )
+        schema_version = "2.1" if policy in {"ADVISORY", "REQUIRED"} else "2.0"
         state = {
-            "schema_version": "2.0",
+            "schema_version": schema_version,
             "engine_version": __version__,
             "workflow_ref": TREE_WORKFLOW_REF,
             "task": copy.deepcopy(task),
@@ -96,6 +109,14 @@ class VGTREEEngine:
                 }
             ],
         }
+        if schema_version == "2.1":
+            state["coverage"] = {
+                "policy": policy,
+                "execution_stage": "WIDE",
+                "map_digest": task_map["source_digest"],
+                "advanced_at": None,
+                "history": [],
+            }
         state_report = validate_state(state)
         if not state_report.valid:
             return GuardResult(
@@ -113,6 +134,108 @@ class VGTREEEngine:
 
     def validate(self, state: Any) -> ValidationReport:
         return validate_state(state)
+
+    def evaluate_coverage(self, state: dict[str, Any]) -> GuardResult:
+        invalid = self._invalid_state_result(state)
+        if invalid:
+            return invalid
+        if state["schema_version"] == "2.0":
+            return GuardResult(
+                "PASS",
+                "COVERAGE_NOT_APPLICABLE",
+                "Schema 2.0 does not use a coverage gate.",
+                compute_coverage(state),
+            )
+        data = compute_coverage(state)
+        if data["execution_stage"] == "DEEP":
+            return GuardResult(
+                "PASS", "DEEP_STAGE_ACTIVE", "Deep execution stage is active.", data
+            )
+        if data["wide_pass_ready"]:
+            return GuardResult(
+                "PASS", "WIDE_PASS_READY", "All required baseline coverage is present.", data
+            )
+        status = "BLOCKED" if data["policy"] == "REQUIRED" else "REVIEW_REQUIRED"
+        return GuardResult(
+            status,
+            "COVERAGE_INCOMPLETE",
+            "Required baseline coverage is incomplete.",
+            data,
+        )
+
+    def advance_execution_depth(
+        self, state: dict[str, Any], reason: str | None = None
+    ) -> GuardResult:
+        invalid = self._invalid_state_result(state)
+        if invalid:
+            return invalid
+        if state["schema_version"] == "2.0":
+            return GuardResult(
+                "PASS",
+                "COVERAGE_NOT_APPLICABLE",
+                "Schema 2.0 does not use execution-depth transitions.",
+                {"state": state},
+            )
+        if state["phase"] != "branch_execution":
+            return GuardResult(
+                "FAIL",
+                "COVERAGE_PHASE_INVALID",
+                "Execution depth can advance only during branch_execution.",
+            )
+        if state["coverage"]["execution_stage"] == "DEEP":
+            return GuardResult(
+                "PASS",
+                "DEEP_STAGE_ACTIVE",
+                "Deep execution stage is already active.",
+                {"state": state, **compute_coverage(state)},
+            )
+
+        data = compute_coverage(state)
+        ready = data["wide_pass_ready"]
+        policy = data["policy"]
+        stripped_reason = reason.strip() if isinstance(reason, str) else ""
+        if not ready and policy == "REQUIRED":
+            return GuardResult(
+                "BLOCKED",
+                "COVERAGE_INCOMPLETE",
+                "Required baseline coverage blocks deep execution.",
+                data,
+            )
+        if not ready and policy == "ADVISORY" and not stripped_reason:
+            return GuardResult(
+                "REVIEW_REQUIRED",
+                "COVERAGE_OVERRIDE_REASON_REQUIRED",
+                "An incomplete advisory wide pass requires an override reason.",
+                data,
+            )
+
+        timestamp = _timestamp()
+        updated = copy.deepcopy(state)
+        updated["coverage"]["execution_stage"] = "DEEP"
+        updated["coverage"]["advanced_at"] = timestamp
+        updated["coverage"]["history"].append(
+            {
+                "from": "WIDE",
+                "to": "DEEP",
+                "timestamp": timestamp,
+                "reason": stripped_reason or "wide pass complete",
+                "override": not ready,
+            }
+        )
+        report = validate_state(updated)
+        if not report.valid:
+            return GuardResult(
+                "FAIL",
+                "STATE_INVALID",
+                "Depth transition would create invalid state.",
+                {"validation": report.as_dict()},
+            )
+        return GuardResult(
+            "PASS",
+            "DEEP_STAGE_ACTIVATED",
+            "Execution advanced from the wide pass to deep work.",
+            {"state": updated, **compute_coverage(updated)},
+        )
 
     def record_evidence(
         self,
@@ -205,13 +328,13 @@ class VGTREEEngine:
                     "BRANCH_EVIDENCE_REQUIRED",
                     "Terminal and blocked branch states require evidence.",
                 )
-            if status == "VERIFIED" and not any(
-                item.get("outcome") == "PASS" for item in evidence_records
+            if status == "VERIFIED" and not has_passing_completion_evidence(
+                evidence_records
             ):
                 return GuardResult(
                     "REVIEW_REQUIRED",
                     "BRANCH_PASS_EVIDENCE_REQUIRED",
-                    "Verified status requires at least one passing evidence record.",
+                    "Verified status requires passing non-baseline completion evidence.",
                 )
         if status == "BLOCKED" and not blocked_reason:
             return GuardResult(
@@ -278,13 +401,33 @@ class VGTREEEngine:
         return GuardResult("FAIL", "ILLEGAL_PHASE", f"Unsupported phase: {phase}")
 
     def guard(
-        self, state: dict[str, Any], branch_id: str, activity: str
+        self,
+        state: dict[str, Any],
+        branch_id: str,
+        activity: str,
+        *,
+        depth: str | None = None,
     ) -> GuardResult:
         invalid = self._invalid_state_result(state)
         if invalid:
             return invalid
         if not activity.strip():
             return GuardResult("FAIL", "ACTIVITY_REQUIRED", "Activity must not be empty.")
+        if state["schema_version"] == "2.1":
+            if depth is None:
+                return GuardResult(
+                    "FAIL", "DEPTH_REQUIRED", "Schema 2.1 guards require an execution depth."
+                )
+            if depth not in {"wide", "deep"}:
+                return GuardResult(
+                    "FAIL", "DEPTH_INVALID", "Execution depth must be wide or deep."
+                )
+            if depth == "deep" and state["coverage"]["execution_stage"] == "WIDE":
+                return GuardResult(
+                    "BLOCKED",
+                    "DEEP_STAGE_NOT_ACTIVE",
+                    "Deep work is blocked until the wide pass advances.",
+                )
 
         branches = {branch["id"]: branch for branch in state["branches"]}
         branch = branches.get(branch_id)
@@ -336,7 +479,7 @@ class VGTREEEngine:
             "PASS",
             "BRANCH_GUARD_PASS",
             "Branch activity is allowed.",
-            {"branch_id": branch_id, "activity": activity},
+            {"branch_id": branch_id, "activity": activity, "depth": depth},
         )
 
     def complete(self, state: dict[str, Any]) -> GuardResult:

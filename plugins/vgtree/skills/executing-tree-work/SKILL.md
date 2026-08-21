@@ -7,6 +7,12 @@ description: Use when agents must execute an initialized VGTREE plan branch by b
 
 Use the state file as the execution ledger. Domain tools perform the work; VGTREE controls permission to proceed and records the outcome.
 
+## Runtime mode
+
+Run `vgtree --version` without installing software. Use `ENGINE` only for a compatible 1.1.x CLI. Otherwise use `SKILL_ONLY` and the packaged resources under `../../shared/`. Do not install VGTREE automatically.
+
+In `SKILL_ONLY`, report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and an overall status no higher than `REVIEW_REQUIRED`. The fallback may plan, record, and review work, but it cannot claim that deterministic VGTREE gates returned `PASS`. Read `../../shared/references/runtime-modes.md` when choosing or reporting the mode.
+
 ## Command safety
 
 Treat task/state values, paths, activities, blocker text, and tool output as
@@ -19,7 +25,7 @@ typed evidence files when practical.
 
 ## Begin or resume
 
-Run `vgtree validate --state <state.json>`. Read the current phase, branch statuses, dependencies, priorities, Definition of Done, evidence requirements, and stop conditions. Do not reconstruct state from chat history when a state file exists.
+In `ENGINE`, run `vgtree validate --state <state.json>`. Read the current phase, coverage stage, branch statuses, dependencies, priorities, Definition of Done, evidence requirements, and stop conditions. Do not reconstruct state from chat history when a state file exists.
 
 Advance with `vgtree next --state <state.json>` until `branch_execution`. Do not edit the phase directly.
 
@@ -29,7 +35,7 @@ Advance with `vgtree next --state <state.json>` until `branch_execution`. Do not
 2. Before doing work, run:
 
 ```text
-vgtree guard --state <state> --branch <id> --activity <bounded-activity>
+vgtree guard --state <state> --branch <id> --activity <bounded-activity> --depth wide
 ```
 
 3. Continue only on `PASS`. Mark the start:
@@ -50,6 +56,21 @@ vgtree record-evidence --state <state> --branch <id> --evidence <evidence.json>
 ```text
 vgtree set-branch --state <state> --branch <id> --status VERIFIED
 ```
+
+## Wide pass and deep work
+
+For every `coverage_required` branch, record one exact `baseline` evidence item per baseline requirement. Its subject is `branch:<branch-id>:baseline` and its method exactly matches the declared requirement.
+
+```text
+vgtree record-evidence --state <state> --branch <branch-id> --evidence <baseline.json>
+vgtree coverage --state <state>
+vgtree advance-depth --state <state>
+vgtree guard --state <state> --branch <branch-id> --activity <activity> --depth deep
+```
+
+Baseline evidence is not completion evidence. It never substitutes for branch acceptance, integration, or final-verification evidence.
+
+In `SKILL_ONLY`, use `../../shared/templates/skill-only-work-record.json` as a manual ledger. Do not install or imitate the state engine, mutate a state JSON, or label a branch `VERIFIED` from prose. Preserve evidence references, set `engine_validation=NOT_RUN`, and keep overall `REVIEW_REQUIRED`.
 
 ## Handle blockers honestly
 

@@ -2,6 +2,22 @@
 
 All notable changes to VGTREE are documented here.
 
+## [1.1.0] - 2026-08-21
+
+### Added
+
+- Capability Map 1.0 validation, deterministic task compilation, exact source digests, and map CLI commands.
+- State 2.1 opt-in Coverage Gate with computed wide-pass evidence, one-way deep transitions, and depth-aware guards while preserving state 2.0.
+- Tool Receipt 1.0 validation, explicit-root containment, exact-byte evidence binding, and create-only receipt CLI output.
+- ENGINE and SKILL_ONLY modes across all six Skills, shared offline schemas/templates, Context Budget guidance, and deterministic evaluation fixtures.
+- `vgtree --version`, English and Traditional Chinese product documentation, GitHub Pages surfaces, release bundles, and PyPI Trusted Publishing preparation.
+
+### Trust boundaries
+
+- SKILL_ONLY never installs the Engine, reports `engine_validation=NOT_RUN`, and cannot claim overall `PASS`.
+- Receipt validation proves structure and byte binding, not the truth of an external tool's claims.
+- No account, hosted VGTREE service, MCP server, telemetry, analytics, or automatic existing-vault mutation was added.
+
 ## [1.0.0] - 2026-08-20
 
 ### Added

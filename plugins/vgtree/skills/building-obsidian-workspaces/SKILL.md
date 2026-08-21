@@ -7,6 +7,14 @@ description: Use when auditing an existing Obsidian vault or creating a new VGTR
 
 First decide whether the target is an existing vault or a new workspace. The commands are intentionally different.
 
+## Runtime mode
+
+Run `vgtree --version` without installing software. Use `ENGINE` only for a compatible 1.1.x CLI. Otherwise use `SKILL_ONLY` and the packaged resources under `../../shared/`. Do not install VGTREE automatically.
+
+In `SKILL_ONLY`, report `runtime_mode=SKILL_ONLY`, `engine_validation=NOT_RUN`, and an overall status no higher than `REVIEW_REQUIRED`. The fallback may plan, record, and review work, but it cannot claim that deterministic VGTREE gates returned `PASS`. Read `../../shared/references/runtime-modes.md` when choosing or reporting the mode.
+
+In `SKILL_ONLY`, read `../../shared/references/obsidian-audit-checklist.md`. Perform only a read-only review of an existing vault, or prepare a proposed new-workspace plan. Do not install VGTREE, scaffold, or mutate an existing vault.
+
 ## Existing vault: audit and plan only
 
 Start with Core unless the user has explicitly chosen the additional UID/hash/transaction maintenance of Governed mode.

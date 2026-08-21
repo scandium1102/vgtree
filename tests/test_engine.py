@@ -327,6 +327,16 @@ class BranchMutationTests(unittest.TestCase):
         self.assertEqual(result.status, "REVIEW_REQUIRED")
         self.assertEqual(result.code, "BRANCH_EVIDENCE_REQUIRED")
 
+    def test_passing_baseline_cannot_verify_branch(self) -> None:
+        state = initialized_state()
+        state["branches"][0]["status"] = "IN_PROGRESS"
+        state["branches"][0]["evidence"] = [evidence("ev-baseline", "baseline")]
+
+        result = VGTREEEngine().set_branch(state, "build", "VERIFIED")
+
+        self.assertEqual(result.status, "REVIEW_REQUIRED")
+        self.assertEqual(result.code, "BRANCH_PASS_EVIDENCE_REQUIRED")
+
     def test_duplicate_evidence_id_is_rejected(self) -> None:
         state = initialized_state()
         first = VGTREEEngine().record_evidence(state, evidence("ev-1", "test"))
@@ -361,6 +371,16 @@ class BranchMutationTests(unittest.TestCase):
     def test_directly_injected_verified_status_without_pass_evidence_is_invalid(self) -> None:
         state = initialized_state()
         state["branches"][0]["status"] = "VERIFIED"
+
+        report = VGTREEEngine().validate(state)
+
+        self.assertFalse(report.valid)
+        self.assertIn("VERIFIED_EVIDENCE_REQUIRED", {issue.code for issue in report.issues})
+
+    def test_directly_injected_verified_status_with_only_baseline_is_invalid(self) -> None:
+        state = initialized_state()
+        state["branches"][0]["status"] = "VERIFIED"
+        state["branches"][0]["evidence"] = [evidence("ev-baseline", "baseline")]
 
         report = VGTREEEngine().validate(state)
 

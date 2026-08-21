@@ -1,0 +1,33 @@
+{
+  "artifacts": [
+    {
+      "digest": "sha256:0000000000000000000000000000000000000000000000000000000000000000",
+      "reference": "artifacts/test-report.json",
+      "subject": "test report"
+    }
+  ],
+  "branch_id": "build",
+  "ended_at": "2026-08-20T10:02:00Z",
+  "evidence_method": "full test suite",
+  "evidence_type": "branch-validation",
+  "notes": "Fresh run against the exact integrated subject",
+  "receipt_id": "receipt-build-001",
+  "receipt_version": "1.0",
+  "started_at": "2026-08-20T10:00:00Z",
+  "status": "PASS",
+  "subject": "integrated source at commit abc1234",
+  "task_id": "release-example",
+  "tool": {
+    "invocation_kind": "CLI",
+    "name": "unittest",
+    "version": "3.11"
+  },
+  "validations": [
+    {
+      "method": "python -m unittest discover -s tests -v",
+      "name": "full test suite",
+      "outcome": "PASS",
+      "reference": "artifacts/test-report.json"
+    }
+  ]
+}

@@ -7,9 +7,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from test_capability import valid_map
+from test_coverage import covered_state, coverage_task
 from test_engine import at_phase, evidence, initialized_state
 from test_persistence import legacy_state
+from test_receipts import valid_receipt
 from test_validation import valid_task
+from vgtree.engine import VGTREEEngine
+from vgtree.validation import validate_evidence, validate_task
 
 
 def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
@@ -22,6 +27,162 @@ def run_cli(*arguments: str) -> subprocess.CompletedProcess[str]:
 
 
 class CoreCliTests(unittest.TestCase):
+    def test_receipt_validate_and_evidence_cli(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "receipts"
+            root.mkdir()
+            receipt = root / "receipt.json"
+            output = Path(directory) / "evidence.json"
+            receipt.write_text(json.dumps(valid_receipt()), encoding="utf-8")
+
+            validated = run_cli(
+                "receipt", "validate", "--root", str(root), "--receipt", str(receipt)
+            )
+            created = run_cli(
+                "receipt",
+                "evidence",
+                "--root",
+                str(root),
+                "--receipt",
+                str(receipt),
+                "--output",
+                str(output),
+            )
+
+            self.assertEqual(validated.returncode, 0, validated.stderr)
+            self.assertEqual(created.returncode, 0, created.stderr)
+            self.assertTrue(validate_evidence(json.loads(output.read_text(encoding="utf-8"))).valid)
+
+    def test_receipt_evidence_never_overwrites(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory) / "receipts"
+            root.mkdir()
+            receipt = root / "receipt.json"
+            output = Path(directory) / "evidence.json"
+            receipt.write_text(json.dumps(valid_receipt()), encoding="utf-8")
+            output.write_text("owner bytes", encoding="utf-8")
+            result = run_cli(
+                "receipt",
+                "evidence",
+                "--root",
+                str(root),
+                "--receipt",
+                str(receipt),
+                "--output",
+                str(output),
+            )
+            self.assertEqual(result.returncode, 3)
+            self.assertEqual(output.read_text(encoding="utf-8"), "owner bytes")
+
+    def test_receipt_attachment_keeps_only_compact_evidence(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            receipts = root / "receipts"
+            receipts.mkdir()
+            receipt = receipts / "receipt.json"
+            evidence_path = root / "evidence.json"
+            state_path = root / "state.json"
+            receipt.write_text(json.dumps(valid_receipt()), encoding="utf-8")
+            state_path.write_text(json.dumps(initialized_state()), encoding="utf-8")
+
+            created = run_cli(
+                "receipt",
+                "evidence",
+                "--root",
+                str(receipts),
+                "--receipt",
+                str(receipt),
+                "--output",
+                str(evidence_path),
+            )
+            attached = run_cli(
+                "record-evidence",
+                "--state",
+                str(state_path),
+                "--evidence",
+                str(evidence_path),
+                "--branch",
+                "build",
+            )
+            saved = json.loads(state_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(created.returncode, 0, created.stderr)
+            self.assertEqual(attached.returncode, 0, attached.stderr)
+            compact = saved["branches"][0]["evidence"][0]
+            self.assertIn("digest", compact)
+            self.assertIn("reference", compact)
+            self.assertNotIn("tool", compact)
+            self.assertNotIn("validations", compact)
+
+    def test_coverage_and_advance_depth_persist_state(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state = covered_state()
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+
+            report = run_cli("coverage", "--state", str(state_path))
+            advanced = run_cli("advance-depth", "--state", str(state_path))
+            saved = json.loads(state_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(report.returncode, 0, report.stderr)
+            self.assertEqual(advanced.returncode, 0, advanced.stderr)
+            self.assertEqual(saved["coverage"]["execution_stage"], "DEEP")
+
+    def test_advance_depth_lock_collision_preserves_state_bytes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state_path.write_text(json.dumps(covered_state()), encoding="utf-8")
+            before = state_path.read_bytes()
+            state_path.with_name("state.json.lock").write_text(
+                "other writer", encoding="utf-8"
+            )
+
+            result = run_cli("advance-depth", "--state", str(state_path))
+
+            self.assertEqual(result.returncode, 3)
+            self.assertEqual(json.loads(result.stdout)["code"], "STATE_LOCKED")
+            self.assertEqual(state_path.read_bytes(), before)
+
+    def test_guard_depth_is_forwarded(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state_path = Path(directory) / "state.json"
+            state = VGTREEEngine().initialize(coverage_task()).data["state"]
+            state_path.write_text(json.dumps(state), encoding="utf-8")
+            result = run_cli(
+                "guard",
+                "--state",
+                str(state_path),
+                "--branch",
+                "authorize",
+                "--activity",
+                "deep optimization",
+                "--depth",
+                "deep",
+            )
+            self.assertEqual(result.returncode, 3)
+            self.assertEqual(json.loads(result.stdout)["code"], "DEEP_STAGE_NOT_ACTIVE")
+
+    def test_map_validate_and_compile_never_overwrite(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "map.json"
+            output = root / "task.json"
+            source.write_text(json.dumps(valid_map()), encoding="utf-8")
+
+            validated = run_cli("map", "validate", "--map", str(source))
+            first = run_cli(
+                "map", "compile", "--map", str(source), "--output", str(output)
+            )
+            second = run_cli(
+                "map", "compile", "--map", str(source), "--output", str(output)
+            )
+
+            self.assertEqual(validated.returncode, 0, validated.stderr)
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertEqual(second.returncode, 3)
+            self.assertEqual(json.loads(second.stdout)["code"], "TASK_OUTPUT_EXISTS")
+            self.assertTrue(validate_task(json.loads(output.read_text(encoding="utf-8"))).valid)
+
     def test_classify_emits_pass_json(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             task_path = Path(directory) / "task.json"

@@ -1,0 +1,211 @@
+{
+  "branches": [
+    {
+      "baseline_evidence_requirements": [
+        "Fresh authorization record"
+      ],
+      "coverage_required": true,
+      "deferred_details": [],
+      "definition_of_done": [
+        "Release is explicitly authorized"
+      ],
+      "depends_on": [],
+      "evidence": [
+        {
+          "digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+          "id": "baseline-authorize-1",
+          "method": "Fresh authorization record",
+          "outcome": "PASS",
+          "subject": "branch:authorize:baseline",
+          "timestamp": "2026-08-20T00:00:00Z",
+          "type": "baseline"
+        }
+      ],
+      "evidence_requirements": [
+        "Authorization evidence"
+      ],
+      "id": "authorize",
+      "kind": "primary",
+      "minimum_viable_state": [
+        "Release owner and target are known"
+      ],
+      "priority": "P0",
+      "shared_interfaces": [
+        "release-target"
+      ],
+      "status": "PENDING",
+      "stop_condition": "Stop on approval or named blocker",
+      "title": "Authorize release"
+    },
+    {
+      "baseline_evidence_requirements": [
+        "Fresh target inspection"
+      ],
+      "coverage_required": true,
+      "deferred_details": [
+        "Performance tuning"
+      ],
+      "definition_of_done": [
+        "Approved artifact is available"
+      ],
+      "depends_on": [
+        "authorize"
+      ],
+      "evidence": [],
+      "evidence_requirements": [
+        "Deployment and readback evidence"
+      ],
+      "id": "deploy",
+      "kind": "primary",
+      "minimum_viable_state": [
+        "Target and rollback route are known"
+      ],
+      "priority": "P0",
+      "shared_interfaces": [
+        "release-target"
+      ],
+      "status": "PENDING",
+      "stop_condition": "Stop after readback or named blocker",
+      "title": "Deploy release"
+    }
+  ],
+  "coverage": {
+    "advanced_at": null,
+    "execution_stage": "WIDE",
+    "history": [],
+    "map_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "policy": "REQUIRED"
+  },
+  "engine_version": "1.1.0",
+  "evidence": [],
+  "history": [
+    {
+      "from": null,
+      "reason": "workflow initialized",
+      "timestamp": "2026-08-20T00:00:00Z",
+      "to": "mission_understanding"
+    },
+    {
+      "from": "mission_understanding",
+      "reason": "computed phase gate passed",
+      "timestamp": "2026-08-20T00:00:00Z",
+      "to": "outcome_definition"
+    },
+    {
+      "from": "outcome_definition",
+      "reason": "computed phase gate passed",
+      "timestamp": "2026-08-20T00:00:00Z",
+      "to": "breadth_mapping"
+    },
+    {
+      "from": "breadth_mapping",
+      "reason": "computed phase gate passed",
+      "timestamp": "2026-08-20T00:00:00Z",
+      "to": "branch_execution"
+    }
+  ],
+  "phase": "branch_execution",
+  "route": "tree",
+  "schema_version": "2.1",
+  "task": {
+    "branches": [
+      {
+        "baseline_evidence_requirements": [
+          "Fresh authorization record"
+        ],
+        "coverage_required": true,
+        "deferred_details": [],
+        "definition_of_done": [
+          "Release is explicitly authorized"
+        ],
+        "depends_on": [],
+        "evidence_requirements": [
+          "Authorization evidence"
+        ],
+        "id": "authorize",
+        "kind": "primary",
+        "minimum_viable_state": [
+          "Release owner and target are known"
+        ],
+        "priority": "P0",
+        "shared_interfaces": [
+          "release-target"
+        ],
+        "stop_condition": "Stop on approval or named blocker",
+        "title": "Authorize release"
+      },
+      {
+        "baseline_evidence_requirements": [
+          "Fresh target inspection"
+        ],
+        "coverage_required": true,
+        "deferred_details": [
+          "Performance tuning"
+        ],
+        "definition_of_done": [
+          "Approved artifact is available"
+        ],
+        "depends_on": [
+          "authorize"
+        ],
+        "evidence_requirements": [
+          "Deployment and readback evidence"
+        ],
+        "id": "deploy",
+        "kind": "primary",
+        "minimum_viable_state": [
+          "Target and rollback route are known"
+        ],
+        "priority": "P0",
+        "shared_interfaces": [
+          "release-target"
+        ],
+        "stop_condition": "Stop after readback or named blocker",
+        "title": "Deploy release"
+      }
+    ],
+    "capability_map": {
+      "cross_cutting_constraints": [
+        {
+          "description": "External release requires approval",
+          "gate": "PRE_EXECUTION",
+          "id": "release-auth",
+          "module_ids": [
+            "deploy"
+          ],
+          "owner_branch_id": "authorize"
+        }
+      ],
+      "final_acceptance_matrix": [
+        {
+          "criterion": "Approved artifact is publicly readable",
+          "evidence_requirements": [
+            "Authoritative readback"
+          ],
+          "gate": "final-verification",
+          "id": "release-readback",
+          "module_ids": [
+            "deploy"
+          ]
+        }
+      ],
+      "map_version": "1.0",
+      "source_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "wide_pass_policy": "REQUIRED"
+    },
+    "description": "Verified release and authoritative readback",
+    "signals": {
+      "cross_system": true,
+      "destructive": false,
+      "estimated_files": 20,
+      "external_effect": true,
+      "irreversible": false,
+      "migration": false,
+      "project_scale": true
+    },
+    "task_id": "release-example",
+    "title": "Release an integrated product"
+  },
+  "task_class": "T3",
+  "workflow_ref": "WF-VEGA-TREE@1.0"
+}

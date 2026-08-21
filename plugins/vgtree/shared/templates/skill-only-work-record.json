@@ -1,0 +1,21 @@
+{
+  "record_version": "1.0",
+  "runtime_mode": "SKILL_ONLY",
+  "engine_validation": "NOT_RUN",
+  "overall_status": "REVIEW_REQUIRED",
+  "task_id": "replace-with-safe-id",
+  "capability_map_reference": "capability-map.json",
+  "branches": [
+    {
+      "id": "replace-with-branch-id",
+      "status": "PLANNED",
+      "evidence_references": [],
+      "limitations": []
+    }
+  ],
+  "integration_review": {
+    "performed": false,
+    "findings": []
+  },
+  "next_engine_check": "vgtree --version"
+}
