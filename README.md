@@ -6,6 +6,8 @@
 
 Branch complex work into verifiable outcomes.
 
+[Portfolio case study](https://scandial-portfolio.scandium.chatgpt.site/project-vgtree.html) · [Research manuscript](https://scandial-portfolio.scandium.chatgpt.site/research-manuscript.html)
+
 **Map the whole outcome. Cover every required branch. Go deep only after the wide pass. Bind completion evidence to inspectable receipts.**
 
 VGTREE is a local-first workflow system for ChatGPT, Codex, other agents, and Obsidian. Six portable Skills work immediately from the plugin directory; the optional Python Engine adds deterministic schemas, state transitions, coverage gates, receipt binding, and JSON CLI results.
